@@ -61,16 +61,32 @@ public enum Scoring {
         return out.reversed()
     }
 
-    /// Points for one callsign.
+    /// Share of the points lost per second of response time.
+    public static let responsePenaltyPerSecond = 0.03
+    /// However slow the response, a correct copy keeps at least this share of its points.
+    public static let minimumResponseFactor = 0.5
+
+    /// Points a perfect, instant copy would earn. Grows with the item's Morse length (in dit units) and with speed,
+    /// so long, dense items copied fast are worth the most.
+    public static func maxPoints(sent: String, cpm: Double) -> Int {
+        Int((Double(Morse.units(of: sent)) * cpm / 100).rounded())
+    }
+
+    /// Multiplier for the time from the end of the sound to pressing Return: 3% less per second, never below half.
+    public static func responseFactor(seconds: Double?) -> Double {
+        guard let seconds else { return 1 }
+        return max(minimumResponseFactor, 1 - responsePenaltyPerSecond * max(0, seconds))
+    }
+
+    /// Points for one item.
     ///
-    /// Base value grows with the callsign's Morse length (in dit units) and with speed, so long, dense calls
-    /// copied fast are worth the most. Each wrong character costs a share of the points; a repeated
-    /// callsign scores nothing.
-    public static func points(sent: String, received: String, cpm: Double, repeated: Bool) -> Int {
+    /// Each wrong character costs a share of the maximum, a slow response costs a little more (`responseFactor`),
+    /// and a repeated item scores nothing. `responseTime` is nil for attempts recorded before response timing.
+    public static func points(sent: String, received: String, cpm: Double, repeated: Bool, responseTime: Double? = nil) -> Int {
         guard !repeated else { return 0 }
         let errors = editDistance(sent, received)
-        let factor = max(0, 1 - 2 * Double(errors) / Double(max(sent.count, 1)))
+        let accuracy = max(0, 1 - 2 * Double(errors) / Double(max(sent.count, 1)))
         let base = Double(Morse.units(of: sent)) * cpm / 100
-        return Int((base * factor).rounded())
+        return Int((base * accuracy * responseFactor(seconds: responseTime)).rounded())
     }
 }

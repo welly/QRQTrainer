@@ -96,6 +96,14 @@ final class KeyMonitor {
     }
 }
 
+enum ResponseFormat {
+    /// "0.74 s", or "—" when the time wasn't measured.
+    static func string(_ ms: Int?) -> String {
+        guard let ms else { return "—" }
+        return (Double(ms) / 1000).formatted(.number.precision(.fractionLength(2))) + " s"
+    }
+}
+
 extension Date {
     var shortDateTime: String { formatted(date: .abbreviated, time: .shortened) }
 }

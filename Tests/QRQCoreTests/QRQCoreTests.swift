@@ -207,3 +207,36 @@ private func close(_ a: Double, _ b: Double, _ tolerance: Double = 1e-9) -> Bool
         #expect(close(Double(s.count), MorseSynth.duration(of: "K1AB", cpm: 300, farnsworth: 0.6, leadIn: 0.05, tail: 0.05) * 8000, 1))
     }
 }
+
+@Suite struct ResponseTimeTests {
+    @Test func factorFallsWithTimeAndBottomsOut() {
+        #expect(Scoring.responseFactor(seconds: nil) == 1)
+        #expect(Scoring.responseFactor(seconds: 0) == 1)
+        #expect(close(Scoring.responseFactor(seconds: 1), 0.97))
+        #expect(close(Scoring.responseFactor(seconds: 10), 0.7))
+        #expect(Scoring.responseFactor(seconds: 60) == Scoring.minimumResponseFactor)
+    }
+
+    @Test func slowerAnswersScoreLess() {
+        let fast = Scoring.points(sent: "DL1ABC", received: "DL1ABC", cpm: 300, repeated: false, responseTime: 0.5)
+        let slow = Scoring.points(sent: "DL1ABC", received: "DL1ABC", cpm: 300, repeated: false, responseTime: 3)
+        #expect(fast > slow)
+        #expect(fast <= Scoring.maxPoints(sent: "DL1ABC", cpm: 300))
+    }
+
+    @Test func sessionRecordsResponseTime() {
+        var s = TrainingSession(config: TrainingConfig(count: 2), callsigns: ["K1AB", "G4XYZ"])
+        let a = s.submit("K1AB", responseTime: 0.742)
+        #expect(a?.responseMs == 742)
+        #expect(a?.maxPoints == Scoring.maxPoints(sent: "K1AB", cpm: 100))
+        s.submit("G4XYZ", responseTime: 1.258)
+        #expect(AttemptRecord(session: s, source: "t").averageResponseMs == 1000)
+    }
+
+    @Test func oldRecordsWithoutResponseTimeStillDecode() throws {
+        let json = #"{"index":0,"sent":"K1AB","received":"K1AB","cpm":100,"points":5,"repeated":false}"#
+        let r = try JSONDecoder().decode(CallResult.self, from: Data(json.utf8))
+        #expect(r.responseMs == nil)
+        #expect(r.points == 5)
+    }
+}

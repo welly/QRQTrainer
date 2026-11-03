@@ -26,7 +26,21 @@ public struct CallResult: Codable, Equatable, Identifiable, Sendable {
     public let cpm: Double
     public let points: Int
     public let repeated: Bool
+    /// Milliseconds from the end of the sound to pressing Return. Nil in attempts recorded before it was measured.
+    public var responseMs: Int?
 
+    public init(index: Int, sent: String, received: String, cpm: Double, points: Int, repeated: Bool, responseMs: Int? = nil) {
+        self.index = index
+        self.sent = sent
+        self.received = received
+        self.cpm = cpm
+        self.points = points
+        self.repeated = repeated
+        self.responseMs = responseMs
+    }
+
+    /// What a perfect, instant copy would have earned.
+    public var maxPoints: Int { repeated ? 0 : Scoring.maxPoints(sent: sent, cpm: cpm) }
     public var isCorrect: Bool { sent == received }
     public var errors: Int { Scoring.editDistance(sent, received) }
 }
@@ -59,8 +73,10 @@ public struct TrainingSession: Sendable {
         currentWasRepeated = true
     }
 
+    /// Scores the answer to the current item. `responseTime` is the seconds from the end of the sound to Return
+    /// (0 if answered while it was still playing); nil leaves time out of the score.
     @discardableResult
-    public mutating func submit(_ answer: String) -> CallResult? {
+    public mutating func submit(_ answer: String, responseTime: Double? = nil) -> CallResult? {
         guard let sent = currentCallsign else { return nil }
         let received = answer.trimmingCharacters(in: .whitespaces).uppercased()
         let result = CallResult(
@@ -68,8 +84,10 @@ public struct TrainingSession: Sendable {
             sent: sent,
             received: received,
             cpm: currentCPM,
-            points: Scoring.points(sent: sent, received: received, cpm: currentCPM, repeated: currentWasRepeated),
-            repeated: currentWasRepeated
+            points: Scoring.points(sent: sent, received: received, cpm: currentCPM, repeated: currentWasRepeated,
+                                   responseTime: responseTime),
+            repeated: currentWasRepeated,
+            responseMs: responseTime.map { Int(($0 * 1000).rounded()) }
         )
         results.append(result)
 
@@ -112,4 +130,9 @@ public struct AttemptRecord: Codable, Equatable, Identifiable, Sendable {
     public var peakCPM: Double { results.filter(\.isCorrect).map(\.cpm).max() ?? 0 }
     public var averageCPM: Double { results.isEmpty ? 0 : results.map(\.cpm).reduce(0, +) / Double(results.count) }
     public var accuracy: Double { results.isEmpty ? 0 : Double(correctCount) / Double(results.count) }
+    /// Mean response time in milliseconds, or nil if it wasn't measured.
+    public var averageResponseMs: Int? {
+        let times = results.compactMap(\.responseMs)
+        return times.isEmpty ? nil : times.reduce(0, +) / times.count
+    }
 }

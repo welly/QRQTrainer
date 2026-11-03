@@ -32,13 +32,14 @@ public struct HistoryStore: Sendable {
 
     public static func csv(_ records: [AttemptRecord]) -> String {
         let iso = ISO8601DateFormatter()
-        var lines = ["date,source,callsigns,score,correct,peak_cpm,peak_wpm,average_cpm,start_cpm"]
+        var lines = ["date,source,callsigns,score,correct,peak_cpm,peak_wpm,average_cpm,start_cpm,average_response_ms"]
         for r in records.sorted(by: { $0.date < $1.date }) {
             let source = "\"" + r.source.replacingOccurrences(of: "\"", with: "\"\"") + "\""
             lines.append([
                 iso.string(from: r.date), source, String(r.results.count), String(r.score), String(r.correctCount),
                 String(Int(r.peakCPM.rounded())), String(Int(Morse.wpm(fromCPM: r.peakCPM).rounded())),
                 String(Int(r.averageCPM.rounded())), String(Int(r.config.startCPM.rounded())),
+                r.averageResponseMs.map(String.init) ?? "",
             ].joined(separator: ","))
         }
         return lines.joined(separator: "\n") + "\n"

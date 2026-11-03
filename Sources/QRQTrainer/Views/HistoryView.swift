@@ -100,6 +100,7 @@ private struct AttemptInspector: View {
                 GridRow { Text("Correct").foregroundStyle(.secondary); Text("\(record.correctCount) of \(record.results.count)") }
                 GridRow { Text("Peak").foregroundStyle(.secondary); Text(SpeedFormat.string(record.peakCPM, wpm: showWPM)) }
                 GridRow { Text("Average").foregroundStyle(.secondary); Text(SpeedFormat.string(record.averageCPM, wpm: showWPM)) }
+                GridRow { Text("Response").foregroundStyle(.secondary); Text(ResponseFormat.string(record.averageResponseMs) + " average") }
                 GridRow { Text("Step").foregroundStyle(.secondary); Text("\(record.config.stepPercent.formatted())% per copy") }
             }
             .font(.callout)

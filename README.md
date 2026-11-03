@@ -11,7 +11,7 @@ Built with SwiftUI, Swift Charts and AVAudioEngine. Requires **macOS 14 Sonoma o
 
 - **Adaptive speed.** Every correct copy raises the speed by a configurable percentage (4% by default); every miss lowers it.
 - **Real-speed Morse.** Each callsign is rendered sample-accurately with raised-cosine keying. It stays clean well beyond 600 CPM (120 WPM), with no element jitter.
-- **Scoring.** Points grow with the callsign's Morse length and the speed it was sent at. Each wrong character costs points, and a repeated callsign (F6 / ⌘R) scores nothing.
+- **Scoring.** Points grow with the callsign's Morse length and the speed it was sent at. Each wrong character costs points, a slow answer costs a little, and a repeated callsign (F6 / ⌘R) scores nothing. Results show the maximum and gained points and the response time for each item.
 - **Instant feedback.** You see what was sent next to what you typed, with each mistake highlighted.
 - **Results.** A per-attempt speed chart, a full callsign table, and personal-best detection.
 - **Progress dashboard.** Score and peak/average speed trends, filterable by callsign source and time range.
@@ -77,10 +77,14 @@ Data is stored in `~/Library/Application Support/QRQTrainer/`.
 ## Scoring
 
 ```
-points = morseUnits(callsign) × CPM / 100 × max(0, 1 − 2 × errors / length)
+max points = morseUnits(item) × CPM / 100
+points     = max points × max(0, 1 − 2 × errors / length) × max(0.5, 1 − 0.03 × seconds)
 ```
 
-`errors` is the edit distance between what was sent and what you typed. A repeated callsign scores 0.
+`errors` is the edit distance between what was sent and what you typed. `seconds` is the response time, from the
+end of the sound to pressing Return (0 if you answer while it's still playing), so each second costs 3% of the
+points, and a correct copy always keeps at least half. A repeated item scores 0.
+Attempts recorded before response timing was added have no response time and weren't penalised for it.
 Scores are only comparable between attempts that use the same callsign source and attempt length (50 is the classic).
 
 ## Not included

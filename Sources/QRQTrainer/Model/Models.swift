@@ -107,6 +107,8 @@ final class TrainerModel {
     private var settings = TrainerSettings.current()
     private var nextCall: Task<Void, Never>?
     private var source = ""
+    /// When the current item's sound finished; nil while it is still playing.
+    private var playbackEnded: ContinuousClock.Instant?
 
     init(history: HistoryModel, library: CallsignLibrary) {
         self.history = history
@@ -163,7 +165,10 @@ final class TrainerModel {
 
     func submit() {
         guard phase == .running, awaitingAnswer, var s = session else { return }
-        let result = s.submit(entry)
+        // Answering before the sound has finished counts as an instant response.
+        let elapsed = playbackEnded.map { ContinuousClock.now - $0 } ?? .zero
+        let seconds = Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18
+        let result = s.submit(entry, responseTime: seconds)
         session = s
         lastResult = result
         entry = ""
@@ -213,7 +218,11 @@ final class TrainerModel {
                                        farnsworth: settings.farnsworth)
         awaitingAnswer = true
         isPlaying = true
-        player.play(samples) { [weak self] in self?.isPlaying = false }
+        playbackEnded = nil
+        player.play(samples) { [weak self] in
+            self?.isPlaying = false
+            self?.playbackEnded = .now
+        }
     }
 
     private func finish() {
