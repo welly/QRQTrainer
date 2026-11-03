@@ -7,6 +7,7 @@ struct SettingsView: View {
         TabView {
             AudioSettings().tabItem { Label("Audio", systemImage: "speaker.wave.2") }
             TrainingSettings().tabItem { Label("Training", systemImage: "figure.run") }
+            CharacterSettings().tabItem { Label("Characters", systemImage: "character.textbox") }
             CallsignSettings().tabItem { Label("Callsigns", systemImage: "antenna.radiowaves.left.and.right") }
         }
         .frame(width: 520)
@@ -74,6 +75,9 @@ private struct TrainingSettings: View {
     @AppStorage(Pref.maxCPM) private var maxCPM = 999.0
     @AppStorage(Pref.pauseMs) private var pauseMs = 400.0
     @AppStorage(Pref.showWPM) private var showWPM = false
+    @AppStorage(Pref.farnsworth) private var farnsworth = false
+    @AppStorage(Pref.farnsworthPercent) private var farnsworthPercent = 60.0
+    @AppStorage(Pref.startCPM) private var startCPM = 100.0
 
     var body: some View {
         Form {
@@ -84,7 +88,7 @@ private struct TrainingSettings: View {
                 }
             }
             Section {
-                LabeledContent("Speed change per callsign") {
+                LabeledContent("Speed change per copy") {
                     Stepper("\(stepPercent.formatted())%", value: $stepPercent, in: 1...10, step: 0.5)
                         .monospacedDigit()
                 }
@@ -95,11 +99,24 @@ private struct TrainingSettings: View {
                     Stepper("\(Int(maxCPM)) CPM", value: $maxCPM, in: 100...999, step: 10).monospacedDigit()
                 }
             } footer: {
-                Text("A correct copy raises the speed by this percentage, a miss lowers it. Repeated callsigns don't raise it.")
+                Text("A correct copy raises the speed by this percentage, a miss lowers it. Repeats don't raise it.")
                     .foregroundStyle(.secondary)
             }
             Section {
-                LabeledContent("Pause before next callsign") {
+                Toggle("Farnsworth spacing", isOn: $farnsworth)
+                if farnsworth {
+                    LabeledContent("Overall speed") {
+                        HStack {
+                            Slider(value: $farnsworthPercent, in: 20...95, step: 5).labelsHidden()
+                            Text("\(Int(farnsworthPercent))%").monospacedDigit().frame(width: 64, alignment: .trailing)
+                        }
+                    }
+                }
+            } footer: {
+                Text(farnsworthFooter).foregroundStyle(.secondary)
+            }
+            Section {
+                LabeledContent("Pause before next item") {
                     HStack {
                         Slider(value: $pauseMs, in: 0...2000, step: 50).labelsHidden()
                         Text("\(Int(pauseMs)) ms").monospacedDigit().frame(width: 64, alignment: .trailing)
@@ -108,6 +125,29 @@ private struct TrainingSettings: View {
             }
         }
         .formStyle(.grouped)
+    }
+
+    private var farnsworthFooter: String {
+        let charSpeed = SpeedFormat.string(startCPM, wpm: showWPM)
+        let overall = SpeedFormat.string(startCPM * farnsworthPercent / 100, wpm: showWPM)
+        let example = farnsworth ? " At your start speed, characters are sent at \(charSpeed) with an overall speed of \(overall)." : ""
+        return "Sends each character at full speed but stretches the gaps between characters and words, "
+            + "so you learn the sound of fast characters with more time to think.\(example) "
+            + "Attempts with Farnsworth spacing are scored separately."
+    }
+}
+
+private struct CharacterSettings: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Choose which characters character-group modes may send. A mode only uses the classes in its name, so Letters ignores the figures and symbols chosen here.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            CharacterPicker(classes: CharacterClass.allCases)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

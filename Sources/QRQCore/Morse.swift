@@ -25,6 +25,8 @@ public enum Morse {
         "0": "-----", "1": ".----", "2": "..---", "3": "...--", "4": "....-",
         "5": ".....", "6": "-....", "7": "--...", "8": "---..", "9": "----.",
         "/": "-..-.", "?": "..--..", ".": ".-.-.-", ",": "--..--", "=": "-...-",
+        ":": "---...", ";": "-.-.-.", "+": ".-.-.", "-": "-....-", "'": ".----.",
+        "\"": ".-..-.", "(": "-.--.", ")": "-.--.-", "@": ".--.-.",
     ]
 
     public static func code(for character: Character) -> String? {
@@ -93,21 +95,42 @@ public struct ToneSettings: Equatable, Sendable {
 
 /// Renders Morse code into mono Float32 PCM with click-free envelopes.
 public enum MorseSynth {
-    public static func duration(of text: String, cpm: Double, leadIn: Double = 0, tail: Double = 0) -> Double {
-        leadIn + Double(Morse.units(of: text)) * Morse.ditSeconds(cpm: cpm) + tail
+    /// Length of one unit of the gaps between characters and words, in seconds.
+    ///
+    /// With Farnsworth spacing, characters keep their full speed and only these gaps are stretched, so the
+    /// overall (effective) speed is `farnsworth` × the character speed. Uses the ARRL formula: the extra delay
+    /// per PARIS word, `(60c − 37.2s) / (c·s)` seconds, spread over its 19 gap units.
+    public static func gapUnitSeconds(cpm: Double, farnsworth: Double = 1) -> Double {
+        let dit = Morse.ditSeconds(cpm: cpm)
+        let ratio = min(1, max(0.1, farnsworth))
+        guard ratio < 1 else { return dit }
+        let c = Morse.wpm(fromCPM: max(cpm, 1)), s = c * ratio
+        return max(dit, (60 * c - 37.2 * s) / (c * s) / 19)
+    }
+
+    private static func seconds(of element: KeyElement, dit: Double, gapUnit: Double) -> Double {
+        // Gaps of 3 or more units separate characters or words; the 1-unit gaps inside a character are never stretched.
+        Double(element.units) * (!element.isOn && element.units >= 3 ? gapUnit : dit)
+    }
+
+    public static func duration(of text: String, cpm: Double, farnsworth: Double = 1, leadIn: Double = 0, tail: Double = 0) -> Double {
+        let dit = Morse.ditSeconds(cpm: cpm), gap = gapUnitSeconds(cpm: cpm, farnsworth: farnsworth)
+        return leadIn + Morse.keying(for: text).reduce(0) { $0 + seconds(of: $1, dit: dit, gapUnit: gap) } + tail
     }
 
     public static func render(
         text: String,
         cpm: Double,
         tone: ToneSettings,
+        farnsworth: Double = 1,
         leadIn: Double = 0.05,
         tail: Double = 0.05
     ) -> [Float] {
         let sr = tone.sampleRate
         let dit = Morse.ditSeconds(cpm: cpm)
         let elements = Morse.keying(for: text)
-        let total = Int((duration(of: text, cpm: cpm, leadIn: leadIn, tail: tail) * sr).rounded(.up))
+        let gapUnit = gapUnitSeconds(cpm: cpm, farnsworth: farnsworth)
+        let total = Int((duration(of: text, cpm: cpm, farnsworth: farnsworth, leadIn: leadIn, tail: tail) * sr).rounded(.up))
         var samples = [Float](repeating: 0, count: max(total, 0))
         guard !elements.isEmpty, total > 0 else { return samples }
 
@@ -118,7 +141,7 @@ public enum MorseSynth {
 
         var t = leadIn
         for element in elements {
-            let length = Double(element.units) * dit
+            let length = seconds(of: element, dit: dit, gapUnit: gapUnit)
             if element.isOn {
                 let start = Int((t * sr).rounded())
                 let end = min(Int(((t + length) * sr).rounded()), samples.count)

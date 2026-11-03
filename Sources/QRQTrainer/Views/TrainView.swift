@@ -26,10 +26,11 @@ private struct ReadyView: View {
     @AppStorage(Pref.startCPM) private var startCPM = 100.0
     @AppStorage(Pref.count) private var count = 50
     @AppStorage(Pref.showWPM) private var showWPM = false
-    @AppStorage(Pref.useImported) private var useImported = false
+    private var prefs = SourcePrefs()
 
     var body: some View {
-        let source = trainer.sourceName(useImported: useImported)
+        let source = trainer.sourceName()
+        let item = prefs.mode.itemName
         let attempts = history.records(source: source)
         let best = history.best(source: source)
 
@@ -38,9 +39,11 @@ private struct ReadyView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Ready to copy")
                         .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                    Text("Listen to each callsign, type it, press Return. Copy correctly and the speed goes up; miss and it drops.")
+                    Text("Listen to each \(item), type it, press Return. Copy correctly and the speed goes up; miss and it drops.")
                         .foregroundStyle(.secondary)
                 }
+
+                WhatToCopyCard()
 
                 HStack(alignment: .top, spacing: 16) {
                     Card {
@@ -79,24 +82,31 @@ private struct ReadyView: View {
                                 .buttonStyle(.link)
                                 .font(.callout)
                             }
+                            if prefs.farnsworth {
+                                Label("Farnsworth spacing: overall \(Int(prefs.farnsworthPercent))% of character speed",
+                                      systemImage: "arrow.left.and.right")
+                                    .font(.callout)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
 
                     Card {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Callsigns per attempt").font(.headline)
-                            Picker("Callsigns", selection: $count) {
+                            Text("\(item.capitalized)s per attempt").font(.headline)
+                            Picker("\(item.capitalized)s", selection: $count) {
                                 ForEach([10, 25, 50, 100], id: \.self) { Text("\($0)").tag($0) }
                             }
                             .pickerStyle(.segmented)
                             .labelsHidden()
                             Text(count == 50 ? "50 is the classic attempt length, so scores stay comparable."
-                                             : "Shorter attempts are good for warming up.")
+                                             : count > 50 ? "Long attempts build stamina." : "Shorter attempts are good for warming up.")
                                 .font(.callout)
                                 .foregroundStyle(.secondary)
                             Divider()
-                            Label(source, systemImage: "antenna.radiowaves.left.and.right")
+                            Label(source, systemImage: prefs.mode.symbol)
                                 .font(.callout)
+                                .lineLimit(2)
                         }
                     }
                     .frame(maxWidth: 320)
@@ -120,6 +130,7 @@ private struct ReadyView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.extraLarge)
+                    .disabled(!trainer.canStart())
                     KeyHint("⌘↩")
                     Spacer()
                     Button("Test tone", systemImage: "speaker.wave.2") { trainer.playTestTone() }
@@ -128,9 +139,9 @@ private struct ReadyView: View {
 
                 Card {
                     HStack(alignment: .top, spacing: 24) {
-                        tip("ear", "Copy in your head", "Don't write while listening. Hear the whole call, then type it.")
-                        tip("arrow.counterclockwise", "Repeat with F6 / ⌘R", "Plays it again, but that callsign scores nothing.")
-                        tip("chart.line.uptrend.xyaxis", "Speed adapts", "Every correct call is faster, every miss is slower.")
+                        tip("ear", "Copy in your head", "Don't write while listening. Hear the whole \(item), then type it.")
+                        tip("arrow.counterclockwise", "Repeat with F6 / ⌘R", "Plays it again, but that \(item) scores nothing.")
+                        tip("chart.line.uptrend.xyaxis", "Speed adapts", "Every correct copy is faster, every miss is slower.")
                     }
                 }
             }
@@ -173,7 +184,7 @@ private struct CopyingView: View {
 
         VStack(spacing: 0) {
             HStack {
-                Text("Callsign \(min((session?.index ?? 0) + 1, session?.callsigns.count ?? 0)) of \(session?.callsigns.count ?? 0)")
+                Text("\(trainer.itemName.capitalized) \(min((session?.index ?? 0) + 1, session?.callsigns.count ?? 0)) of \(session?.callsigns.count ?? 0)")
                     .font(.headline)
                     .monospacedDigit()
                 Spacer()
@@ -200,7 +211,7 @@ private struct CopyingView: View {
 
             Spacer(minLength: 24)
 
-            TextField("Callsign", text: $trainer.entry, prompt: Text(trainer.awaitingAnswer ? "Type what you heard" : "Get ready…"))
+            TextField(trainer.itemName.capitalized, text: $trainer.entry, prompt: Text(trainer.awaitingAnswer ? "Type what you heard" : "Get ready…"))
                 .textFieldStyle(.plain)
                 .font(.system(size: 44, weight: .semibold, design: .monospaced))
                 .multilineTextAlignment(.center)
@@ -208,7 +219,7 @@ private struct CopyingView: View {
                 .focused($fieldFocused)
                 .onSubmit { trainer.submit() }
                 .onChange(of: trainer.entry) { _, new in
-                    let clean = String(new.uppercased().filter { ($0.isASCII && ($0.isLetter || $0.isNumber)) || $0 == "/" }.prefix(15))
+                    let clean = String(Self.normalised(new).filter { Morse.code(for: $0) != nil }.prefix(20))
                     if clean != new { trainer.entry = clean }
                 }
                 .padding(.vertical, 18)
@@ -231,7 +242,7 @@ private struct CopyingView: View {
                 Button("Repeat", systemImage: "arrow.counterclockwise") { trainer.repeatCurrent() }
                     .disabled(!trainer.awaitingAnswer)
                 KeyHint("F6")
-                Text("no points for a repeated call").font(.caption).foregroundStyle(.secondary)
+                Text("no points for a repeat").font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 KeyHint("esc")
                 Button("End Attempt", systemImage: "xmark", role: .destructive) { trainer.abort() }
@@ -257,6 +268,13 @@ private struct CopyingView: View {
         }
         .onDisappear { keys.remove() }
         .onChange(of: trainer.awaitingAnswer) { _, waiting in if waiting { fieldFocused = true } }
+    }
+
+    /// Upper-cases and turns typographic quotes back into the plain ones Morse has codes for.
+    static func normalised(_ text: String) -> String {
+        text.uppercased()
+            .replacingOccurrences(of: "\u{2018}", with: "'").replacingOccurrences(of: "\u{2019}", with: "'")
+            .replacingOccurrences(of: "\u{201C}", with: "\"").replacingOccurrences(of: "\u{201D}", with: "\"")
     }
 }
 
@@ -428,16 +446,16 @@ struct AttemptSpeedChart: View {
 
     var body: some View {
         Chart(record.results) { r in
-            LineMark(x: .value("Callsign", r.index + 1), y: .value("Speed", speed(r.cpm)))
+            LineMark(x: .value("Item", r.index + 1), y: .value("Speed", speed(r.cpm)))
                 .interpolationMethod(.monotone)
                 .foregroundStyle(Color.accentColor.opacity(0.6))
-            PointMark(x: .value("Callsign", r.index + 1), y: .value("Speed", speed(r.cpm)))
+            PointMark(x: .value("Item", r.index + 1), y: .value("Speed", speed(r.cpm)))
                 .foregroundStyle(by: .value("Result", r.isCorrect ? "Correct" : "Missed"))
                 .symbolSize(36)
         }
         .chartForegroundStyleScale(["Correct": Color.green, "Missed": Color.red])
         .chartYAxisLabel(SpeedFormat.unit(wpm: showWPM))
-        .chartXAxisLabel("Callsign")
+        .chartXAxisLabel("#")
         .chartYScale(domain: .automatic(includesZero: false))
     }
 

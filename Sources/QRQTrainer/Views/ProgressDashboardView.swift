@@ -94,7 +94,7 @@ struct ProgressDashboardView: View {
                             }
                         }
 
-                        Text("Scores are only comparable between attempts with the same callsign source and length.")
+                        Text("Scores are only comparable between attempts with the same source and length.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }

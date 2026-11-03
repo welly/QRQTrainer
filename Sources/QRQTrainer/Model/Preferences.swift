@@ -18,11 +18,25 @@ enum Pref {
     static let portablePercent = "portablePercent"
     static let prefixedPercent = "prefixedPercent"
     static let showWPM = "showWPM"
+    static let mode = "trainerMode"
+    static let variableLength = "variableGroupLength"
+    static let groupLength = "groupLength"
+    static let groupMin = "groupMinLength"
+    static let groupMax = "groupMaxLength"
+    static let composition = "groupComposition"
+    static let enabledCharacters = "enabledCharacters"
+    static let farnsworth = "farnsworth"
+    static let farnsworthPercent = "farnsworthPercent"
+
+    static let allCharacters = String(CharacterClass.allCharacters)
 
     static let defaults: [String: Any] = [
         count: 50, startCPM: 100.0, stepPercent: 4.0, minCPM: 25.0, maxCPM: 999.0, pauseMs: 400.0,
         pitch: 600.0, randomPitch: false, pitchSpread: 100.0, volume: 0.6, riseMs: 5.0,
         useImported: false, portablePercent: 0.0, prefixedPercent: 0.0, showWPM: false,
+        mode: TrainerMode.callsigns.rawValue, variableLength: false, groupLength: 5, groupMin: 1, groupMax: 12,
+        composition: GroupComposition.mixed.rawValue, enabledCharacters: allCharacters,
+        farnsworth: false, farnsworthPercent: 60.0,
     ]
 
     static func register() { UserDefaults.standard.register(defaults: defaults) }
@@ -44,6 +58,13 @@ struct TrainerSettings {
     var useImported: Bool
     var portablePercent: Double
     var prefixedPercent: Double
+    var mode: TrainerMode
+    var minLength: Int
+    var maxLength: Int
+    var composition: GroupComposition
+    var enabledCharacters: Set<Character>
+    /// Effective speed as a fraction of the character speed (1 = no Farnsworth spacing).
+    var farnsworth: Double
 
     static func current(_ d: UserDefaults = .standard) -> TrainerSettings {
         TrainerSettings(
@@ -60,8 +81,42 @@ struct TrainerSettings {
             riseMs: d.double(forKey: Pref.riseMs),
             useImported: d.bool(forKey: Pref.useImported),
             portablePercent: d.double(forKey: Pref.portablePercent),
-            prefixedPercent: d.double(forKey: Pref.prefixedPercent)
+            prefixedPercent: d.double(forKey: Pref.prefixedPercent),
+            mode: TrainerMode(rawValue: d.string(forKey: Pref.mode) ?? "") ?? .callsigns,
+            minLength: d.bool(forKey: Pref.variableLength) ? d.integer(forKey: Pref.groupMin) : d.integer(forKey: Pref.groupLength),
+            maxLength: d.bool(forKey: Pref.variableLength) ? d.integer(forKey: Pref.groupMax) : d.integer(forKey: Pref.groupLength),
+            composition: GroupComposition(rawValue: d.string(forKey: Pref.composition) ?? "") ?? .mixed,
+            enabledCharacters: Set(d.string(forKey: Pref.enabledCharacters) ?? Pref.allCharacters),
+            farnsworth: d.bool(forKey: Pref.farnsworth) ? min(1, max(0.2, d.double(forKey: Pref.farnsworthPercent) / 100)) : 1
         )
+    }
+
+    var groupGenerator: GroupGenerator {
+        GroupGenerator(mode: mode, enabled: enabledCharacters, minLength: minLength, maxLength: maxLength, composition: composition)
+    }
+
+    /// Name of what the next attempt will send. Attempts are only compared (best score, progress) within one source,
+    /// so it includes everything that changes difficulty: mode, group length, composition and a custom character set.
+    @MainActor func sourceName(library: CallsignLibrary) -> String {
+        let base = baseSourceName(library: library)
+        return farnsworth < 1 ? "\(base) · Farnsworth \(Int((farnsworth * 100).rounded()))%" : base
+    }
+
+    @MainActor private func baseSourceName(library: CallsignLibrary) -> String {
+        switch mode {
+        case .callsigns:
+            if useImported, !library.calls.isEmpty { return library.name ?? "Imported list" }
+            return "Generated"
+        case .hamCodes:
+            return TrainerMode.hamCodes.title
+        default:
+            let g = groupGenerator
+            var parts = [mode.title, g.minLength == g.maxLength ? "\(g.minLength)" : "\(g.minLength)–\(g.maxLength)"]
+            if mode.classes.count > 1, composition == .separated { parts.append("separated") }
+            let full = Set(mode.classes.flatMap(\.characters))
+            if !full.isSubset(of: enabledCharacters) { parts.append("custom set") }
+            return parts.joined(separator: " · ")
+        }
     }
 
     var config: TrainingConfig {

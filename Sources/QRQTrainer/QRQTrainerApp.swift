@@ -33,7 +33,7 @@ struct QRQTrainerApp: App {
                 Button("Start Attempt") { trainer.start() }
                     .keyboardShortcut(.return, modifiers: .command)
                     .disabled(trainer.phase == .running)
-                Button("Repeat Callsign") { trainer.repeatCurrent() }
+                Button("Repeat") { trainer.repeatCurrent() }
                     .keyboardShortcut("r", modifiers: .command)
                     .disabled(!trainer.awaitingAnswer)
                 Divider()

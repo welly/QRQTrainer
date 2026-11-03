@@ -17,6 +17,8 @@ Built with SwiftUI, Swift Charts and AVAudioEngine. Requires **macOS 14 Sonoma o
 - **Progress dashboard.** Score and peak/average speed trends, filterable by callsign source and time range.
 - **History.** A sortable table with an inspector for each attempt, plus CSV export.
 - **Callsigns.** A built-in generator that produces realistic calls from about 60 ITU prefix groups (optional /P, /M and foreign prefixes), or import real calls from Super Check Partial `MASTER.SCP` or any text file.
+- **Trainer modes.** Besides callsigns: ham codes (Q codes, abbreviations, reports), and random character groups of letters, figures, symbols or any mix of them. Groups can have a fixed length or a variable min–max length, can be mixed or separated by class, and you can pick exactly which characters are used.
+- **Farnsworth spacing.** Characters are sent at full speed with longer gaps between them, at an overall speed you choose as a percentage of the character speed.
 - **Audio settings.** Pitch, optional per-call pitch variation, volume and edge shaping, plus a test tone.
 - **Display.** Shows speed in CPM (the classic Rufz unit) or WPM (PARIS); 1 WPM = 5 CPM.
 - **Keyboard-first.** `⌘↩` starts, `↩` submits, `F6`/`⌘R` repeats, `esc` ends the attempt. The sidebar collapses while you copy.

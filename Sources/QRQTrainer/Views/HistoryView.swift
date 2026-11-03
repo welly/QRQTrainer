@@ -48,7 +48,7 @@ struct HistoryView: View {
                     AttemptInspector(record: selected, showWPM: showWPM)
                 } else {
                     ContentUnavailableView("Select an attempt", systemImage: "sidebar.right",
-                                           description: Text("See every callsign and what you copied."))
+                                           description: Text("See everything that was sent and what you copied."))
                 }
             }
             .inspectorColumnWidth(min: 300, ideal: 380, max: 520)
@@ -100,7 +100,7 @@ private struct AttemptInspector: View {
                 GridRow { Text("Correct").foregroundStyle(.secondary); Text("\(record.correctCount) of \(record.results.count)") }
                 GridRow { Text("Peak").foregroundStyle(.secondary); Text(SpeedFormat.string(record.peakCPM, wpm: showWPM)) }
                 GridRow { Text("Average").foregroundStyle(.secondary); Text(SpeedFormat.string(record.averageCPM, wpm: showWPM)) }
-                GridRow { Text("Step").foregroundStyle(.secondary); Text("\(record.config.stepPercent.formatted())% per call") }
+                GridRow { Text("Step").foregroundStyle(.secondary); Text("\(record.config.stepPercent.formatted())% per copy") }
             }
             .font(.callout)
             AttemptSpeedChart(record: record, showWPM: showWPM)

@@ -116,3 +116,94 @@ private func close(_ a: Double, _ b: Double, _ tolerance: Double = 1e-9) -> Bool
         #expect(HistoryStore.csv([record]).contains("\"Generated\""))
     }
 }
+
+@Suite struct GroupTests {
+    @Test func everyTrainableCharacterHasMorse() {
+        for ch in CharacterClass.allCharacters { #expect(Morse.code(for: ch) != nil, "\(ch)") }
+    }
+
+    @Test func fixedLengthUsesOnlyEnabledCharacters() {
+        var rng = SeededRandom(seed: 7)
+        let gen = GroupGenerator(mode: .letters, enabled: Set("ABC123"), minLength: 5, maxLength: 5)
+        let groups = gen.generate(200, using: &rng)
+        #expect(groups.count == 200)
+        for g in groups {
+            #expect(g.count == 5)
+            #expect(Set(g).isSubset(of: Set("ABC")))
+        }
+    }
+
+    @Test func variableLengthCoversRange() {
+        var rng = SeededRandom(seed: 3)
+        let gen = GroupGenerator(mode: .all, enabled: Set(CharacterClass.allCharacters), minLength: 2, maxLength: 6)
+        let lengths = Set(gen.generate(500, using: &rng).map(\.count))
+        #expect(lengths == Set(2...6))
+    }
+
+    @Test func swappedBoundsAreNormalised() {
+        let gen = GroupGenerator(mode: .figures, enabled: Set("0123456789"), minLength: 8, maxLength: 3)
+        #expect(gen.minLength == 3 && gen.maxLength == 8)
+    }
+
+    @Test func separatedGroupsUseOneClass() {
+        var rng = SeededRandom(seed: 11)
+        let gen = GroupGenerator(mode: .lettersFigures, enabled: Set(CharacterClass.allCharacters),
+                                 minLength: 4, maxLength: 4, composition: .separated)
+        let groups = gen.generate(300, using: &rng)
+        let letters = Set(CharacterClass.letters.characters), figures = Set(CharacterClass.figures.characters)
+        for g in groups { #expect(Set(g).isSubset(of: letters) || Set(g).isSubset(of: figures), "\(g)") }
+        #expect(groups.contains { Set($0).isSubset(of: letters) })
+        #expect(groups.contains { Set($0).isSubset(of: figures) })
+    }
+
+    @Test func mixedGroupsCombineClasses() {
+        var rng = SeededRandom(seed: 5)
+        let gen = GroupGenerator(mode: .lettersFigures, enabled: Set(CharacterClass.allCharacters), minLength: 6, maxLength: 6)
+        let letters = Set(CharacterClass.letters.characters), figures = Set(CharacterClass.figures.characters)
+        #expect(gen.generate(100, using: &rng).contains { !Set($0).isDisjoint(with: letters) && !Set($0).isDisjoint(with: figures) })
+    }
+
+    @Test func emptySelectionCannotGenerate() {
+        var rng = SeededRandom(seed: 1)
+        let gen = GroupGenerator(mode: .symbols, enabled: Set("ABC"), minLength: 1, maxLength: 3)
+        #expect(!gen.canGenerate)
+        #expect(gen.generate(5, using: &rng).isEmpty)
+    }
+
+    @Test func symbolGroupsScore() {
+        #expect(Scoring.points(sent: "?/=", received: "?/=", cpm: 200, repeated: false) > 0)
+    }
+
+    @Test func hamCodesAreSendable() {
+        for code in HamCodes.all { #expect(code.allSatisfy { Morse.code(for: $0) != nil }, "\(code)") }
+        #expect(Set(HamCodes.all).count == HamCodes.all.count)
+    }
+}
+
+@Suite struct FarnsworthTests {
+    @Test func noStretchAtFullRatio() {
+        #expect(close(MorseSynth.gapUnitSeconds(cpm: 100, farnsworth: 1), Morse.ditSeconds(cpm: 100)))
+        #expect(close(MorseSynth.duration(of: "PARIS", cpm: 100, farnsworth: 1), MorseSynth.duration(of: "PARIS", cpm: 100)))
+    }
+
+    @Test func effectiveSpeedMatchesRatio() {
+        // "PARIS " repeated: one word per 50 units at the character speed; Farnsworth slows the whole word to the ratio.
+        let cpm = 100.0, ratio = 0.5
+        let word = MorseSynth.duration(of: "PARIS PARIS", cpm: cpm, farnsworth: ratio)
+            - MorseSynth.duration(of: "PARIS", cpm: cpm, farnsworth: ratio)
+        let effectiveWPM = 60 / word
+        #expect(close(effectiveWPM, Morse.wpm(fromCPM: cpm) * ratio, 0.01))
+    }
+
+    @Test func charactersKeepTheirSpeed() {
+        // A single character has no gaps to stretch.
+        #expect(close(MorseSynth.duration(of: "H", cpm: 200, farnsworth: 0.4), MorseSynth.duration(of: "H", cpm: 200)))
+        #expect(MorseSynth.duration(of: "HH", cpm: 200, farnsworth: 0.4) > MorseSynth.duration(of: "HH", cpm: 200))
+    }
+
+    @Test func renderedLengthMatchesDuration() {
+        let tone = ToneSettings(sampleRate: 8000)
+        let s = MorseSynth.render(text: "K1AB", cpm: 300, tone: tone, farnsworth: 0.6)
+        #expect(close(Double(s.count), MorseSynth.duration(of: "K1AB", cpm: 300, farnsworth: 0.6, leadIn: 0.05, tail: 0.05) * 8000, 1))
+    }
+}

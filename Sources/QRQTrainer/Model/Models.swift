@@ -113,10 +113,16 @@ final class TrainerModel {
         self.library = library
     }
 
-    /// Name of the callsign source the next attempt will use. Scores are compared within a source.
-    func sourceName(useImported: Bool) -> String {
-        if useImported, !library.calls.isEmpty { return library.name ?? "Imported list" }
-        return "Generated"
+    /// Name of what the next attempt will send, from the current preferences. Scores are compared within a source.
+    func sourceName() -> String { TrainerSettings.current().sourceName(library: library) }
+
+    /// What one item of the running (or next) attempt is called: "callsign", "group" or "code".
+    var itemName: String { (phase == .idle ? TrainerSettings.current() : settings).mode.itemName }
+
+    /// False when the character selection leaves nothing to send in the chosen mode.
+    func canStart() -> Bool {
+        let s = TrainerSettings.current()
+        return !s.mode.usesGroups || s.groupGenerator.canGenerate
     }
 
     var isNewBest: Bool {
@@ -129,15 +135,21 @@ final class TrainerModel {
         settings = .current()
         var rng = SystemRandomNumberGenerator()
         let calls: [String]
-        if settings.useImported, !library.calls.isEmpty {
-            calls = CallsignList.pick(settings.count, from: library.calls, using: &rng)
-            source = library.name ?? "Imported list"
-        } else {
-            let generator = CallsignGenerator(portableProbability: settings.portablePercent / 100,
-                                              prefixedProbability: settings.prefixedPercent / 100)
-            calls = generator.generate(settings.count, using: &rng)
-            source = "Generated"
+        switch settings.mode {
+        case .callsigns:
+            if settings.useImported, !library.calls.isEmpty {
+                calls = CallsignList.pick(settings.count, from: library.calls, using: &rng)
+            } else {
+                let generator = CallsignGenerator(portableProbability: settings.portablePercent / 100,
+                                                  prefixedProbability: settings.prefixedPercent / 100)
+                calls = generator.generate(settings.count, using: &rng)
+            }
+        case .hamCodes:
+            calls = CallsignList.pick(settings.count, from: HamCodes.all, using: &rng)
+        default:
+            calls = settings.groupGenerator.generate(settings.count, using: &rng)
         }
+        source = settings.sourceName(library: library)
         guard !calls.isEmpty else { return }
 
         session = TrainingSession(config: settings.config, callsigns: calls)
@@ -197,7 +209,8 @@ final class TrainerModel {
 
     private func playCurrent() {
         guard phase == .running, let s = session, let call = s.currentCallsign else { return }
-        let samples = MorseSynth.render(text: call, cpm: s.currentCPM, tone: settings.tone(sampleRate: player.sampleRate))
+        let samples = MorseSynth.render(text: call, cpm: s.currentCPM, tone: settings.tone(sampleRate: player.sampleRate),
+                                       farnsworth: settings.farnsworth)
         awaitingAnswer = true
         isPlaying = true
         player.play(samples) { [weak self] in self?.isPlaying = false }
@@ -215,6 +228,7 @@ final class TrainerModel {
     func playTestTone() {
         guard phase != .running else { return }
         let s = TrainerSettings.current()
-        player.play(MorseSynth.render(text: "VVV DL1ABC", cpm: s.startCPM, tone: s.tone(sampleRate: player.sampleRate)))
+        player.play(MorseSynth.render(text: "VVV DL1ABC", cpm: s.startCPM, tone: s.tone(sampleRate: player.sampleRate),
+                                      farnsworth: s.farnsworth))
     }
 }

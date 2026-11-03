@@ -66,14 +66,14 @@ struct ContentView: View {
 
 private struct SidebarFooter: View {
     @Environment(TrainerModel.self) private var trainer
-    @AppStorage(Pref.useImported) private var useImported = false
+    private var prefs = SourcePrefs()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Callsigns").font(.caption).foregroundStyle(.secondary)
-            Label(trainer.sourceName(useImported: useImported), systemImage: "antenna.radiowaves.left.and.right")
+            Text("Copying").font(.caption).foregroundStyle(.secondary)
+            Label(trainer.sourceName(), systemImage: prefs.mode.symbol)
                 .font(.callout)
-                .lineLimit(1)
+                .lineLimit(2)
             SettingsLink {
                 Text("Change…").font(.caption)
             }
