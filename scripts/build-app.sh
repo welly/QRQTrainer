@@ -6,8 +6,15 @@ cd "$(dirname "$0")/.."
 APP="build/QRQ Trainer.app"
 VERSION="${VERSION:-1.0.0}"
 
-swift build -c release --arch arm64 --arch x86_64
-BIN="$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)/QRQTrainer"
+# Universal builds need Xcode's build system; with only the Command Line Tools, build for this Mac.
+if [[ "$(xcode-select -p)" == *CommandLineTools* ]]; then
+    ARCHS=()
+    echo "Command Line Tools only: building for $(uname -m) (install Xcode for a universal build)."
+else
+    ARCHS=(--arch arm64 --arch x86_64)
+fi
+swift build -c release ${ARCHS[@]+"${ARCHS[@]}"}
+BIN="$(swift build -c release ${ARCHS[@]+"${ARCHS[@]}"} --show-bin-path)/QRQTrainer"
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"

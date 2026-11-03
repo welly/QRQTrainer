@@ -44,8 +44,10 @@ To build a double-clickable, universal `.app` in `build/`:
 Run the core unit tests:
 
 ```bash
-swift test
+./scripts/test.sh
 ```
+
+With full Xcode installed, plain `swift test` works too; the script adds the framework paths that the Command Line Tools need for Swift Testing.
 
 ### Real callsigns
 
