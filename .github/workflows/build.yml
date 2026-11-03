@@ -1,0 +1,15 @@
+name: Build & Test
+on: [push, pull_request]
+jobs:
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test core
+        run: swift test
+      - name: Build app bundle
+        run: ./scripts/build-app.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: QRQ-Trainer-app
+          path: build/QRQ Trainer.app
