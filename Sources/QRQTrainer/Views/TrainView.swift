@@ -360,10 +360,10 @@ private struct FeedbackRow: View {
                     }
                     VStack(alignment: .trailing, spacing: 2) {
                         Image(systemName: "timer").font(.callout).foregroundStyle(.secondary)
-                        Text(ResponseFormat.string(r.responseMs)).font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                        Text(ResponseFormat.withUnit(r.responseMs)).font(.caption).foregroundStyle(.secondary).monospacedDigit()
                     }
                     .accessibilityElement(children: .combine)
-                    .accessibilityLabel("Response time \(ResponseFormat.string(r.responseMs))")
+                    .accessibilityLabel("Response time \(ResponseFormat.withUnit(r.responseMs))")
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 10)
@@ -413,7 +413,7 @@ private struct ResultsView: View {
                                  detail: SpeedFormat.secondary(record.peakCPM, wpm: showWPM), symbol: "speedometer", tint: .orange)
                         StatTile(title: "Average", value: SpeedFormat.string(record.averageCPM, wpm: showWPM),
                                  detail: "Started at \(SpeedFormat.string(record.config.startCPM, wpm: showWPM))", symbol: "gauge.with.dots.needle.50percent", tint: .blue)
-                        StatTile(title: "Response", value: ResponseFormat.string(record.averageResponseMs),
+                        StatTile(title: "Response (ms)", value: ResponseFormat.string(record.averageResponseMs),
                                  detail: "Average time to answer", symbol: "timer", tint: .purple)
                     }
 
@@ -480,27 +480,33 @@ struct AttemptResultsTable: View {
     var body: some View {
         Table(record.results) {
             TableColumn("#") { r in Text("\(r.index + 1)").monospacedDigit().foregroundStyle(.secondary) }
-                .width(36)
+                .width(min: 28, ideal: 36)
             TableColumn("") { r in
                 Image(systemName: r.isCorrect ? "checkmark.circle.fill" : "xmark.circle.fill")
                     .foregroundStyle(r.isCorrect ? .green : .red)
             }
             .width(24)
             TableColumn("Sent") { r in Text(r.sent).font(.body.monospaced()) }
+                .width(min: 60, ideal: 120)
             TableColumn("Copied") { r in Diff.received(r).font(.body.monospaced()) }
-            TableColumn("Speed") { r in Text(SpeedFormat.string(r.cpm, wpm: showWPM)).monospacedDigit() }
-                .width(90)
-            TableColumn("Response") { r in Text(ResponseFormat.string(r.responseMs)).monospacedDigit() }
-                .width(76)
-            TableColumn("Max") { r in Text("\(r.maxPoints)").monospacedDigit().foregroundStyle(.secondary) }
-                .width(44)
+                .width(min: 60, ideal: 120)
+            TableColumn("Speed (\(SpeedFormat.unit(wpm: showWPM)))") { r in Text("\(SpeedFormat.value(r.cpm, wpm: showWPM))").monospacedDigit() }
+                .width(min: 50, ideal: 90)
+            TableColumn("Response (ms)") { r in
+                Text(ResponseFormat.string(r.responseMs))
+                    .monospacedDigit()
+                    .help(r.soundMs.map { "From the start of the sound. It lasted \($0) ms." } ?? "")
+            }
+                .width(min: 50, ideal: 100)
+            TableColumn("Max points") { r in Text("\(r.maxPoints)").monospacedDigit().foregroundStyle(.secondary) }
+                .width(min: 50, ideal: 80)
             TableColumn("Points") { r in
                 HStack(spacing: 4) {
                     Text("\(r.points)").monospacedDigit()
                     if r.repeated { Image(systemName: "arrow.counterclockwise").foregroundStyle(.secondary).help("Repeated") }
                 }
             }
-            .width(60)
+            .width(min: 44, ideal: 60)
         }
         .scrollContentBackground(.hidden)
     }

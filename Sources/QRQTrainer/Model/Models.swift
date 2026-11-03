@@ -107,8 +107,10 @@ final class TrainerModel {
     private var settings = TrainerSettings.current()
     private var nextCall: Task<Void, Never>?
     private var source = ""
-    /// When the current item's sound finished; nil while it is still playing.
-    private var playbackEnded: ContinuousClock.Instant?
+    /// When the first tone of the current item reaches the listener (playback start plus output latency and lead-in).
+    private var soundStarts: ContinuousClock.Instant?
+    /// Seconds from the first tone's start to the last tone's end.
+    private var soundDuration: Double = 0
 
     init(history: HistoryModel, library: CallsignLibrary) {
         self.history = history
@@ -165,10 +167,9 @@ final class TrainerModel {
 
     func submit() {
         guard phase == .running, awaitingAnswer, var s = session else { return }
-        // Answering before the sound has finished counts as an instant response.
-        let elapsed = playbackEnded.map { ContinuousClock.now - $0 } ?? .zero
+        let elapsed = soundStarts.map { ContinuousClock.now - $0 } ?? .zero
         let seconds = Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18
-        let result = s.submit(entry, responseTime: seconds)
+        let result = s.submit(entry, responseTime: seconds, soundDuration: soundDuration)
         session = s
         lastResult = result
         entry = ""
@@ -214,15 +215,14 @@ final class TrainerModel {
 
     private func playCurrent() {
         guard phase == .running, let s = session, let call = s.currentCallsign else { return }
+        let leadIn = 0.05
         let samples = MorseSynth.render(text: call, cpm: s.currentCPM, tone: settings.tone(sampleRate: player.sampleRate),
-                                       farnsworth: settings.farnsworth)
+                                       farnsworth: settings.farnsworth, leadIn: leadIn, tail: 0.05)
         awaitingAnswer = true
         isPlaying = true
-        playbackEnded = nil
-        player.play(samples) { [weak self] in
-            self?.isPlaying = false
-            self?.playbackEnded = .now
-        }
+        let start = player.play(samples) { [weak self] in self?.isPlaying = false }
+        soundStarts = start + .seconds(leadIn)
+        soundDuration = MorseSynth.duration(of: call, cpm: s.currentCPM, farnsworth: settings.farnsworth)
     }
 
     private func finish() {

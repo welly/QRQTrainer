@@ -97,10 +97,16 @@ final class KeyMonitor {
 }
 
 enum ResponseFormat {
-    /// "742 ms", or "—" when the time wasn't measured.
+    /// "2970", or "—" when the time wasn't measured. No thousands separator; the unit goes in the label.
     static func string(_ ms: Int?) -> String {
         guard let ms else { return "—" }
-        return ms.formatted() + " ms"
+        return "\(ms)"
+    }
+
+    /// As `string`, with "ms" after a number, for places without a labelled column.
+    static func withUnit(_ ms: Int?) -> String {
+        guard let ms else { return string(ms) }
+        return "\(ms) ms"
     }
 }
 

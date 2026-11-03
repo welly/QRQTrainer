@@ -240,3 +240,27 @@ private func close(_ a: Double, _ b: Double, _ tolerance: Double = 1e-9) -> Bool
         #expect(r.points == 5)
     }
 }
+
+@Suite struct ResponseFromStartTests {
+    @Test func penaltyOnlyCountsTimeAfterTheSound() {
+        var s = TrainingSession(config: TrainingConfig(count: 2), callsigns: ["K1AB", "K1AB"])
+        // 1.5 s response to a 1 s sound: penalised for 0.5 s.
+        let r = s.submit("K1AB", responseTime: 1.5, soundDuration: 1.0)
+        #expect(r?.responseMs == 1500)
+        #expect(r?.soundMs == 1000)
+        #expect(r?.points == Scoring.points(sent: "K1AB", received: "K1AB", cpm: 100, repeated: false, responseTime: 0.5))
+    }
+
+    @Test func answeringDuringTheSoundIsInstant() {
+        var s = TrainingSession(config: TrainingConfig(count: 1), callsigns: ["K1AB"])
+        let r = s.submit("K1AB", responseTime: 0.6, soundDuration: 1.0)
+        #expect(r?.responseMs == 600)
+        #expect(r?.points == Scoring.maxPoints(sent: "K1AB", cpm: 100))
+    }
+
+    @Test func soundDurationExcludesLeadInAndTail() {
+        let full = MorseSynth.duration(of: "K1AB", cpm: 200, leadIn: 0.05, tail: 0.05)
+        let sound = MorseSynth.duration(of: "K1AB", cpm: 200)
+        #expect(close(full - sound, 0.1))
+    }
+}

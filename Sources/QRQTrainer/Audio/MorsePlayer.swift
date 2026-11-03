@@ -22,14 +22,17 @@ final class MorsePlayer {
         engine.prepare()
     }
 
-    func play(_ samples: [Float], completion: (@MainActor () -> Void)? = nil) {
+    /// Plays `samples` and returns when the first sample should reach the listener: now plus the output
+    /// device's latency (large for Bluetooth headphones). `completion` runs once playback has finished.
+    @discardableResult
+    func play(_ samples: [Float], completion: (@MainActor () -> Void)? = nil) -> ContinuousClock.Instant {
         stop()
         guard !samples.isEmpty,
               let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(samples.count)),
               let channel = buffer.floatChannelData?[0]
         else {
             completion?()
-            return
+            return .now
         }
         buffer.frameLength = AVAudioFrameCount(samples.count)
         samples.withUnsafeBufferPointer { src in
@@ -42,7 +45,7 @@ final class MorsePlayer {
             } catch {
                 NSLog("QRQTrainer: audio engine failed to start: \(error)")
                 completion?()
-                return
+                return .now
             }
         }
 
@@ -54,6 +57,8 @@ final class MorsePlayer {
             }
         }
         node.play()
+        let latency = max(0, engine.outputNode.presentationLatency)
+        return .now + .seconds(latency)
     }
 
     func stop() {
