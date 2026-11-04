@@ -73,6 +73,7 @@ struct HistoryView: View {
         }
     }
 
+    @MainActor
     private func exportCSV() {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.commaSeparatedText]

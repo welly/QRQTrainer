@@ -122,6 +122,7 @@ struct ProgressDashboardView: View {
         }
     }
 
+    @MainActor
     private var sourceOptions: [String] {
         let s = history.sources
         return s.isEmpty ? ["Generated"] : s

@@ -78,10 +78,10 @@ enum Diff {
 }
 
 /// Lets a view react to keys a text field would otherwise swallow (F6 = repeat, as in classic trainers).
-@MainActor
 final class KeyMonitor {
     private var token: Any?
 
+    @MainActor
     func install(_ handler: @escaping @MainActor (NSEvent) -> Bool) {
         remove()
         token = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
