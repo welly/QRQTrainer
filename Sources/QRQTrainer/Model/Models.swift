@@ -134,7 +134,9 @@ final class TrainerModel {
         return record.score > (previousBest ?? 0)
     }
 
-    func start() {
+    /// Starts an attempt in the current mode. With `focus`, it drills those characters: callsigns and codes are
+    /// chosen to contain them, and character groups are made only from them. Focused attempts are scored separately.
+    func start(focus: Set<Character> = []) {
         guard phase != .running else { return }
         stopTestTone()
         settings = .current()
@@ -143,18 +145,29 @@ final class TrainerModel {
         switch settings.mode {
         case .callsigns:
             if settings.useImported, !library.calls.isEmpty {
-                calls = CallsignList.pick(settings.count, from: library.calls, using: &rng)
+                calls = focus.isEmpty ? CallsignList.pick(settings.count, from: library.calls, using: &rng)
+                    : CallsignList.pick(settings.count, from: library.calls, focusing: focus, using: &rng)
             } else {
                 let generator = CallsignGenerator(portableProbability: settings.portablePercent / 100,
                                                   prefixedProbability: settings.prefixedPercent / 100)
-                calls = generator.generate(settings.count, using: &rng)
+                calls = generator.generate(settings.count, focusing: focus, using: &rng)
             }
         case .hamCodes:
-            calls = CallsignList.pick(settings.count, from: HamCodes.all, using: &rng)
+            calls = focus.isEmpty ? CallsignList.pick(settings.count, from: HamCodes.all, using: &rng)
+                : CallsignList.pick(settings.count, from: HamCodes.all, focusing: focus, using: &rng)
         default:
-            calls = settings.groupGenerator.generate(settings.count, using: &rng)
+            if focus.isEmpty {
+                calls = settings.groupGenerator.generate(settings.count, using: &rng)
+            } else {
+                // Groups of only the focus characters, whatever classes they belong to.
+                calls = GroupGenerator(mode: .all, enabled: focus, minLength: settings.minLength,
+                                       maxLength: settings.maxLength).generate(settings.count, using: &rng)
+            }
         }
         source = settings.sourceName(library: library)
+        if !focus.isEmpty {
+            source += " · focus " + CharacterClass.allCharacters.filter(focus.contains).map(String.init).joined(separator: " ")
+        }
         guard !calls.isEmpty else { return }
 
         session = TrainingSession(config: settings.config, callsigns: calls)

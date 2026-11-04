@@ -264,3 +264,45 @@ private func close(_ a: Double, _ b: Double, _ tolerance: Double = 1e-9) -> Bool
         #expect(close(full - sound, 0.1))
     }
 }
+
+@Suite struct CharacterAnalysisTests {
+    private func result(_ sent: String, _ received: String, responseMs: Int? = nil, soundMs: Int? = nil) -> CallResult {
+        CallResult(index: 0, sent: sent, received: received, cpm: 100, points: 0, repeated: false,
+                   responseMs: responseMs, soundMs: soundMs)
+    }
+
+    @Test func countsAccuracyAndMixUps() {
+        let a = CharacterAnalysis(results: [result("AB", "AB"), result("AB", "AX"), result("AB", "A")])
+        #expect(a.stat(for: "A").sent == 3 && a.stat(for: "A").correct == 3)
+        #expect(a.stat(for: "B").sent == 3 && a.stat(for: "B").correct == 1)
+        #expect(a.confusions.contains { $0.sent == "B" && $0.typed == "X" })
+        #expect(a.confusions.contains { $0.sent == "B" && $0.typed == nil })
+    }
+
+    @Test func instantNeedsCorrectAndQuick() {
+        // Single characters: allowance 800 ms after the sound.
+        var results: [CallResult] = []
+        for _ in 0..<9 { results.append(result("E", "E", responseMs: 900, soundMs: 300)) }   // 600 ms after: instant
+        results.append(result("E", "E", responseMs: 2300, soundMs: 300))                       // 2000 ms after: slow
+        for _ in 0..<5 { results.append(result("T", "T", responseMs: 2300, soundMs: 300)) }   // always slow
+        let a = CharacterAnalysis(results: results)
+        #expect(a.stat(for: "E").instant == 9 && a.stat(for: "E").timed == 10)
+        #expect(a.stat(for: "E").isInstant)
+        #expect(!a.stat(for: "T").isInstant)
+        #expect(a.stat(for: "T").averageThinkMs == 2000)
+        #expect(a.weakest(5).map(\.character) == ["T"])
+        #expect(a.strongest(1).first?.character == "E")
+    }
+
+    @Test func allowanceGrowsWithLength() {
+        #expect(CharacterAnalysis.instantAllowanceMs(length: 1) == 800)
+        #expect(CharacterAnalysis.instantAllowanceMs(length: 6) == 1800)
+    }
+
+    @Test func untimedResultsFallBackToAccuracy() {
+        let a = CharacterAnalysis(results: Array(repeating: result("K", "K"), count: 5))
+        #expect(a.stat(for: "K").instantRate == nil)
+        #expect(a.stat(for: "K").recognition == 1)
+        #expect(!a.stat(for: "K").isInstant)
+    }
+}

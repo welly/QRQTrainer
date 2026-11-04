@@ -19,7 +19,7 @@ Built with SwiftUI, Swift Charts and AVAudioEngine. Requires **macOS 14 Sonoma o
 - **Scoring.** Points grow with the callsign's Morse length and the speed it was sent at. Each wrong character costs points, a slow answer costs a little, and a repeated callsign (F6 / ⌘R) scores nothing. Results show the maximum and gained points and the response time for each item.
 - **Instant feedback.** You see what was sent next to what you typed, with each mistake highlighted.
 - **Results.** A per-attempt speed chart, a full callsign table, and personal-best detection.
-- **Progress dashboard.** Score and peak/average speed trends, filterable by callsign source and time range.
+- **Insights.** Accuracy and instant recognition (ICR) for every character: which you copy instantly and which need work, your common mix-ups (e.g. 5 → H, with their Morse) and accuracy by speed. **Practise these** starts an attempt in the current mode that drills your weakest characters.
 - **History.** A sortable table with an inspector for each attempt, plus CSV export.
 - **Callsigns.** A built-in generator that produces realistic calls from about 60 ITU prefix groups (optional /P, /M and foreign prefixes), or import real calls from Super Check Partial `MASTER.SCP` or any text file.
 - **Trainer modes.** Besides callsigns: ham codes (Q codes, abbreviations, reports), and random character groups of letters, figures, symbols or any mix of them. Groups can have a fixed length or a variable min–max length, can be mixed or separated by class, and you can pick exactly which characters are used.
@@ -78,6 +78,7 @@ Then go to **Settings → Callsigns → Import File…** and pick `~/Downloads/M
 | `Sources/QRQCore/Callsigns.swift` | Callsign generator, list parser, seeded RNG |
 | `Sources/QRQCore/Scoring.swift` | Edit distance, mistake alignment, points |
 | `Sources/QRQCore/TrainingSession.swift` | Attempt rules (speed adaptation, repeats) and records |
+| `Sources/QRQCore/CharacterAnalysis.swift` | Per-character accuracy, instant recognition, mix-ups, focused drills |
 | `Sources/QRQCore/History.swift` | JSON persistence and CSV export |
 | `Sources/QRQTrainer/` | macOS app: audio player, models, SwiftUI views |
 
