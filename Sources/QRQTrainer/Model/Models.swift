@@ -126,19 +126,27 @@ final class TrainerModel {
         return record.score > (previousBest ?? 0)
     }
 
-    func start() {
+    /// Starts an attempt. With `focus`, callsigns are chosen to contain those characters (weak-character drill).
+    func start(focus: Set<Character> = []) {
         guard phase != .running else { return }
         settings = .current()
         var rng = SystemRandomNumberGenerator()
         let calls: [String]
-        if settings.useImported, !library.calls.isEmpty {
-            calls = CallsignList.pick(settings.count, from: library.calls, using: &rng)
+        let useList = settings.useImported && !library.calls.isEmpty
+        if useList {
+            calls = focus.isEmpty
+                ? CallsignList.pick(settings.count, from: library.calls, using: &rng)
+                : CallsignList.pick(settings.count, from: library.calls, focusing: focus, using: &rng)
             source = library.name ?? "Imported list"
         } else {
             let generator = CallsignGenerator(portableProbability: settings.portablePercent / 100,
                                               prefixedProbability: settings.prefixedPercent / 100)
-            calls = generator.generate(settings.count, using: &rng)
+            calls = generator.generate(settings.count, focusing: focus, using: &rng)
             source = "Generated"
+        }
+        // Focused drills are easier to score on, so they're kept apart from regular attempts.
+        if !focus.isEmpty {
+            source = "Focus: " + focus.sorted().map(String.init).joined(separator: " ")
         }
         guard !calls.isEmpty else { return }
 

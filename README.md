@@ -19,8 +19,8 @@ Built with SwiftUI, Swift Charts and AVAudioEngine. Requires **macOS 14 Sonoma o
 - **Scoring.** Points grow with the callsign's Morse length and the speed it was sent at. Each wrong character costs points, and a repeated callsign (F6 / ⌘R) scores nothing.
 - **Instant feedback.** You see what was sent next to what you typed, with each mistake highlighted.
 - **Results.** A per-attempt speed chart, a full callsign table, and personal-best detection.
-- **Progress dashboard.** Score and peak/average speed trends, filterable by callsign source and time range.
-- **History.** A sortable table with an inspector for each attempt, plus CSV export.
+- **Insights.** Accuracy for every letter, digit and `/`; your weakest and strongest characters; common mix-ups (e.g. 5 → H, with their Morse); and accuracy by speed. **Practise these** starts an attempt that focuses on your weakest characters.
+- **History.** A sortable list of attempts, with the selected attempt's full detail in a resizable lower pane; CSV export.
 - **Callsigns.** A built-in generator that produces realistic calls from about 60 ITU prefix groups (optional /P, /M and foreign prefixes), or import real calls from Super Check Partial `MASTER.SCP` or any text file.
 - **Audio settings.** Pitch, optional per-call pitch variation, volume and edge shaping, plus a test tone.
 - **Display.** Shows speed in CPM (the classic Rufz unit) or WPM (PARIS); 1 WPM = 5 CPM.
@@ -68,6 +68,7 @@ Then go to **Settings → Callsigns → Import File…** and pick `~/Downloads/M
 | `Sources/QRQCore/Callsigns.swift` | Callsign generator, list parser, seeded RNG |
 | `Sources/QRQCore/Scoring.swift` | Edit distance, mistake alignment, points |
 | `Sources/QRQCore/TrainingSession.swift` | Attempt rules (speed adaptation, repeats) and records |
+| `Sources/QRQCore/CharacterAnalysis.swift` | Per-character accuracy, mix-ups, speed bands, focused drills |
 | `Sources/QRQCore/History.swift` | JSON persistence and CSV export |
 | `Sources/QRQTrainer/` | macOS app: audio player, models, SwiftUI views |
 

@@ -178,7 +178,7 @@
       <div class="card"><div class="icon" style="--c:var(--gold)">★</div><h3>Scoring &amp; bests</h3><p>Longer calls copied faster score more, mistakes cost points, and repeats score nothing. Beat your personal best.</p></div>
       <div class="card"><div class="icon" style="--c:var(--red)">✕</div><h3>See every mistake</h3><p>What was sent and what you typed sit side by side, with wrong, missing and extra characters highlighted.</p></div>
       <div class="card"><div class="icon" style="--c:var(--green)">∿</div><h3>Clean at any speed</h3><p>Sample-accurate keying with shaped edges stays crisp past 600 CPM (120 WPM). Pick your pitch, or vary it per call.</p></div>
-      <div class="card"><div class="icon" style="--c:#8e6cf1">▤</div><h3>Track progress</h3><p>Charts of your score and speed over time, a full history with per-callsign detail, and CSV export.</p></div>
+      <div class="card"><div class="icon" style="--c:#8e6cf1">▤</div><h3>Know your weak spots</h3><p>See your accuracy for every character and your most common mix-ups, like 5 heard as H, then drill exactly those with one click.</p></div>
       <div class="card"><div class="icon" style="--c:#14b8a6">⌘</div><h3>Keyboard-first</h3><p><kbd>⌘↩</kbd> start, <kbd>↩</kbd> submit, <kbd>F6</kbd> repeat, <kbd>esc</kbd> stop. Use built-in realistic callsigns or import <code>MASTER.SCP</code>.</p></div>
     </div>
   </div>
@@ -257,7 +257,7 @@
   const play = document.getElementById("demo-play");
   const input = document.getElementById("demo-input");
   const out = document.getElementById("demo-result");
-  let ctx = null, current = null;
+  let ctx = null, current = null, playing = null;
 
   const updateLabel = () => { speedLabel.textContent = `${speed.value} CPM · ${Math.round(speed.value / 5)} WPM`; };
   speed.addEventListener("input", updateLabel); updateLabel();
@@ -265,10 +265,13 @@
   function playCall(call, cpm) {
     ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
     const dit = 6 / cpm, rise = Math.min(0.005, dit * 0.3);
+    stopPlaying();
     const osc = ctx.createOscillator(), gain = ctx.createGain();
     osc.frequency.value = 600; gain.gain.value = 0;
+    playing = { osc, gain };
+    osc.onended = () => { if (playing && playing.osc === osc) playing = null; };
     osc.connect(gain).connect(ctx.destination);
-    let t = ctx.currentTime + 0.08;
+    let t = ctx.currentTime + 0.03;
     [...call].forEach((ch, ci) => {
       if (ci) t += 2 * dit; // 3-unit character gap (1 already added after last element)
       [...MORSE[ch]].forEach(sym => {
@@ -283,6 +286,17 @@
     osc.start(); osc.stop(t + 0.05);
   }
 
+  // Cut off any callsign still sounding (with a 5 ms fade so it doesn't click) before starting again.
+  function stopPlaying() {
+    if (!playing || !ctx) return;
+    const { osc, gain } = playing, now = ctx.currentTime;
+    gain.gain.cancelScheduledValues(now);
+    gain.gain.setValueAtTime(gain.gain.value, now);
+    gain.gain.linearRampToValueAtTime(0, now + 0.005);
+    try { osc.stop(now + 0.01); } catch (e) {}
+    playing = null;
+  }
+
   play.addEventListener("click", () => {
     if (!current) { current = makeCall(); out.textContent = ""; input.value = ""; }
     playCall(current, Number(speed.value));
@@ -292,6 +306,7 @@
 
   input.addEventListener("keydown", e => {
     if (e.key !== "Enter" || !current) return;
+    stopPlaying();
     const got = input.value.trim().toUpperCase();
     out.innerHTML = got === current
       ? `<span class="ok">✓ Correct!</span> <span class="mono">${current}</span>. In the app, the next one would be faster.`

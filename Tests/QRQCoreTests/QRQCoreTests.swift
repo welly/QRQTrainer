@@ -152,3 +152,51 @@ final class HistoryTests: XCTestCase {
         XCTAssertTrue(HistoryStore.csv([record]).contains("\"Generated\""))
     }
 }
+
+final class CharacterAnalysisTests: XCTestCase {
+    private func result(_ sent: String, _ received: String, cpm: Double = 100) -> CallResult {
+        CallResult(index: 0, sent: sent, received: received, cpm: cpm, points: 0, repeated: false)
+    }
+
+    func testCountsAndConfusions() {
+        let a = CharacterAnalysis(results: [
+            result("DL5ABC", "DLHABC"),   // 5 → H
+            result("K5XY", "KHXY"),       // 5 → H
+            result("G4ABC", "G4AC"),      // B missed
+            result("W1AW", ""),           // blank: ignored
+        ])
+        XCTAssertEqual(a.callsignCount, 3)
+        XCTAssertEqual(a.stat(for: "5").sent, 2)
+        XCTAssertEqual(a.stat(for: "5").correct, 0)
+        XCTAssertEqual(a.stat(for: "A").accuracy, 1)
+        XCTAssertEqual(a.stat(for: "W").sent, 0)
+        XCTAssertEqual(a.confusions.first, Confusion(sent: "5", typed: "H", count: 2))
+        XCTAssertTrue(a.confusions.contains(Confusion(sent: "B", typed: nil, count: 1)))
+        XCTAssertEqual(a.weakest(1, minSamples: 1).first?.character, "5")
+        XCTAssertEqual(a.weakest(10, minSamples: 3).count, 0)
+    }
+
+    func testSpeedBands() {
+        let bands = CharacterAnalysis.accuracyBySpeed([result("K1A", "K1A", cpm: 110), result("K1A", "X", cpm: 120), result("K1A", "K1A", cpm: 160)])
+        XCTAssertEqual(bands.map(\.lowerCPM), [100, 150])
+        XCTAssertEqual(bands[0].accuracy, 0.5)
+        XCTAssertEqual(bands[1].total, 1)
+    }
+
+    func testFocusedGeneration() {
+        var rng = SeededRandom(seed: 7)
+        let calls = CallsignGenerator().generate(200, focusing: ["5", "H"], using: &rng)
+        XCTAssertEqual(calls.count, 200)
+        let hits = calls.filter { $0.contains("5") || $0.contains("H") }.count
+        XCTAssertGreaterThan(hits, 150)
+        for c in calls { XCTAssertTrue(CallsignList.isValid(c), c) }
+    }
+
+    func testFocusedPickFromList() {
+        var rng = SeededRandom(seed: 3)
+        let list = (0..<100).map { "K\($0 % 10)AB" + ($0 < 50 ? "H" : "X") }
+        let picked = CallsignList.pick(20, from: Array(Set(list)), focusing: ["H"], using: &rng)
+        XCTAssertEqual(picked.count, 20)
+        XCTAssertGreaterThanOrEqual(picked.filter { $0.hasSuffix("H") }.count, 15)
+    }
+}

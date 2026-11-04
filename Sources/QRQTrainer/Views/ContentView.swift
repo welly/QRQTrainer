@@ -1,13 +1,13 @@
 import SwiftUI
 
 enum SidebarItem: String, CaseIterable, Identifiable {
-    case train, progress, history
+    case train, insights, history
     var id: Self { self }
 
     var title: String {
         switch self {
         case .train: "Train"
-        case .progress: "Progress"
+        case .insights: "Insights"
         case .history: "History"
         }
     }
@@ -15,7 +15,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
     var symbol: String {
         switch self {
         case .train: "waveform"
-        case .progress: "chart.xyaxis.line"
+        case .insights: "lightbulb"
         case .history: "clock.arrow.circlepath"
         }
     }
@@ -38,7 +38,7 @@ struct ContentView: View {
         } detail: {
             switch selection ?? .train {
             case .train: TrainView()
-            case .progress: ProgressDashboardView()
+            case .insights: InsightsView()
             case .history: HistoryView()
             }
         }
