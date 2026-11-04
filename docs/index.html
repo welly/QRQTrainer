@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>QRQ Trainer — high-speed callsign copying for macOS</title>
-<meta name="description" content="A free, modern, native macOS trainer for copying amateur radio callsigns in Morse code at high speed. Adaptive speed, scoring, progress charts.">
+<title>QRQ Trainer — high-speed Morse training for macOS</title>
+<meta name="description" content="A free, modern, native macOS trainer for copying Morse code at high speed: callsigns, character groups and Q codes, with adaptive speed, scoring and per-character insights.">
 <meta property="og:title" content="QRQ Trainer for macOS">
-<meta property="og:description" content="Free native macOS trainer for high-speed Morse callsign copying.">
+<meta property="og:description" content="Free native macOS trainer for high-speed Morse: callsigns, character groups and Q codes.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%230a84ff'/><path d='M12 32h6M24 32h18M48 32h6' stroke='white' stroke-width='6' stroke-linecap='round'/></svg>">
 <style>
   :root {
@@ -39,7 +39,10 @@
   nav .links { display: flex; gap: 22px; font-size: 15px; }
   nav .links a { color: var(--muted); }
 
-  .hero { display: grid; grid-template-columns: 1.05fr 1fr; gap: 48px; align-items: center; padding: 48px 0 72px; }
+  .hero { display: grid; grid-template-columns: 1fr; gap: 40px; padding: 48px 0 72px; }
+  .hero .lede { max-width: 46ch; }
+  .shot { margin: 0; }
+  .shot img { display: block; width: 100%; height: auto; }
   .eyebrow { display: inline-flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 600; color: var(--accent);
     background: color-mix(in srgb, var(--accent) 12%, transparent); padding: 5px 12px; border-radius: 99px; }
   h1 { font-size: clamp(40px, 6vw, 64px); line-height: 1.04; letter-spacing: -0.03em; margin: 18px 0 18px; }
@@ -114,7 +117,7 @@
   footer { padding: 40px 0 60px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; }
 
   @media (max-width: 860px) {
-    .hero, .demo { grid-template-columns: 1fr; }
+    .demo { grid-template-columns: 1fr; }
     .grid { grid-template-columns: 1fr 1fr; }
     nav .links a:not(:last-child) { display: none; }
   }
@@ -136,8 +139,8 @@
   <header class="hero">
     <div>
       <span class="eyebrow">Free &amp; open source · macOS 14+</span>
-      <h1>Copy callsigns at the speed of thought.</h1>
-      <p class="lede">A modern, native Mac trainer for high-speed Morse. Hear a callsign, type it, and the next one comes faster.</p>
+      <h1>Train your ear for high-speed Morse.</h1>
+      <p class="lede">A modern, native Mac trainer for CW. Copy callsigns, character groups or Q codes at real speed: hear it, type it, and the next one comes faster.</p>
       <div class="cta">
         <a class="btn btn-primary" href="https://github.com/welly/QRQTrainer/releases/latest/download/QRQ-Trainer.dmg">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M6 11l6 6 6-6M5 20h14"/></svg>
@@ -148,24 +151,10 @@
       <p class="fine">Universal app for Apple Silicon &amp; Intel · <a href="https://github.com/welly/QRQTrainer/releases/latest/download/QRQ-Trainer.zip">.zip</a> · <a href="https://github.com/welly/QRQTrainer/releases">All releases</a> · <a href="#install">First-launch steps</a></p>
     </div>
 
-    <div class="window" aria-label="Screenshot-style mockup of the training screen">
-      <div class="titlebar">
-        <i class="dot" style="background:#ff5f57"></i><i class="dot" style="background:#febc2e"></i><i class="dot" style="background:#28c840"></i>
-        <span>QRQ Trainer</span>
-      </div>
-      <div class="screen">
-        <div class="screen-top"><span>Callsign 31 of 50</span><span>★ 6,482</span></div>
-        <div class="ring" style="--p:62%">
-          <div class="ring-inner">
-            <div class="wave"><i></i><i></i><i></i><i></i><i></i></div>
-            <div class="speed">312<small>↑</small></div>
-            <div class="unit">CPM · 62 WPM</div>
-          </div>
-        </div>
-        <div class="field mono">OH2B<span class="caret"></span></div>
-        <div class="feedback mono"><span class="ok">✓</span> SP9KDA <span style="opacity:.4">|</span> +214 · 300 CPM</div>
-      </div>
-    </div>
+    <figure class="shot">
+      <img src="screenshot-train.png" width="1600" height="1010"
+           alt="QRQ Trainer's Train screen: choose what to copy, set the start speed, and start an attempt.">
+    </figure>
   </header>
 </div>
 
