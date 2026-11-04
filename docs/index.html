@@ -191,13 +191,14 @@
       <p class="sub" style="margin-bottom:0">Press play, listen to the whole callsign, then type what you heard. The app runs 50 of these in a row, adjusting the speed after every one.</p>
     </div>
     <div class="demo-box">
-      <label for="demo-speed">Speed <span id="demo-speed-label" class="mono">150 CPM · 30 WPM</span></label>
-      <input id="demo-speed" type="range" min="50" max="500" step="10" value="150">
+      <label for="demo-speed">Speed <span id="demo-speed-label" class="mono">100 CPM · 20 WPM</span></label>
+      <input id="demo-speed" type="range" min="50" max="500" step="10" value="100">
       <div class="demo-row">
         <button id="demo-play" class="btn btn-primary" type="button">▶ Play callsign</button>
         <input id="demo-input" class="demo-input" type="text" placeholder="Type it" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Your copy">
       </div>
       <div id="demo-result" aria-live="polite"></div>
+      <p class="fine" style="margin:0">To make it easier, this demo leaves extra space between letters (Farnsworth spacing). The app sends at true speed.</p>
     </div>
   </div>
 </section>
@@ -265,6 +266,11 @@
   function playCall(call, cpm) {
     ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
     const dit = 6 / cpm, rise = Math.min(0.005, dit * 0.3);
+    // Farnsworth spacing (ARRL formula): letters at full speed, gaps between letters stretched as if
+    // the overall speed were 70% of it. Never shorter than standard spacing.
+    const c = cpm / 5, s = c * 0.7;
+    const ta = (60 * c - 37.2 * s) / (s * c);
+    const charGap = Math.max(3 * dit, (3 * ta) / 19);
     stopPlaying();
     const osc = ctx.createOscillator(), gain = ctx.createGain();
     osc.frequency.value = 600; gain.gain.value = 0;
@@ -273,7 +279,7 @@
     osc.connect(gain).connect(ctx.destination);
     let t = ctx.currentTime + 0.03;
     [...call].forEach((ch, ci) => {
-      if (ci) t += 2 * dit; // 3-unit character gap (1 already added after last element)
+      if (ci) t += charGap - dit; // one dit of gap was already added after the last element
       [...MORSE[ch]].forEach(sym => {
         const len = (sym === "." ? 1 : 3) * dit;
         gain.gain.setValueAtTime(0, t);
