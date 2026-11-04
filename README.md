@@ -105,7 +105,7 @@ Push a version tag (or use **Actions → Release → Run workflow** and enter th
 git tag v1.0.0 && git push origin v1.0.0
 ```
 
-The download page in `docs/` is published by the **Pages** workflow (Settings → Pages → Source: GitHub Actions).
+The download page is `docs/index.html`, served by GitHub Pages straight from the `main` branch (Settings → Pages → Deploy from a branch → `main` / `/docs`). Changes go live a minute or so after they are pushed.
 
 ## Not included
 
