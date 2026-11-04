@@ -263,8 +263,16 @@
   const updateLabel = () => { speedLabel.textContent = `${speed.value} CPM · ${Math.round(speed.value / 5)} WPM`; };
   speed.addEventListener("input", updateLabel); updateLabel();
 
-  function playCall(call, cpm) {
+  // Safari can leave a new AudioContext suspended, and iOS mutes web audio with the silent switch unless the
+  // page asks for "playback". Resume inside the click so the browser counts it as user-initiated.
+  async function ensureAudio() {
     ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+    if (navigator.audioSession) { try { navigator.audioSession.type = "playback"; } catch (e) {} }
+    if (ctx.state !== "running") { try { await ctx.resume(); } catch (e) {} }
+    return ctx.state === "running";
+  }
+
+  function playCall(call, cpm) {
     const dit = 6 / cpm, rise = Math.min(0.005, dit * 0.3);
     // Farnsworth spacing (ARRL formula): letters at full speed, gaps between letters stretched as if
     // the overall speed were 70% of it. Never shorter than standard spacing.
@@ -303,8 +311,12 @@
     playing = null;
   }
 
-  play.addEventListener("click", () => {
+  play.addEventListener("click", async () => {
     if (!current) { current = makeCall(); out.textContent = ""; input.value = ""; }
+    if (!(await ensureAudio())) {
+      out.textContent = "Your browser didn't allow sound. Check it isn't muted for this site, then press play again.";
+      return;
+    }
     playCall(current, Number(speed.value));
     play.textContent = "↻ Play again";
     input.focus();
