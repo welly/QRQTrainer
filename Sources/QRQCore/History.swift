@@ -34,13 +34,18 @@ public struct HistoryStore: Sendable {
         let iso = ISO8601DateFormatter()
         var lines = ["date,source,callsigns,score,correct,peak_cpm,peak_wpm,average_cpm,start_cpm,average_response_ms"]
         for r in records.sorted(by: { $0.date < $1.date }) {
+            // Built field by field: one big array literal is too slow for some compilers to type-check.
             let source = "\"" + r.source.replacingOccurrences(of: "\"", with: "\"\"") + "\""
-            lines.append([
-                iso.string(from: r.date), source, String(r.results.count), String(r.score), String(r.correctCount),
-                String(Int(r.peakCPM.rounded())), String(Int(Morse.wpm(fromCPM: r.peakCPM).rounded())),
-                String(Int(r.averageCPM.rounded())), String(Int(r.config.startCPM.rounded())),
-                r.averageResponseMs.map(String.init) ?? "",
-            ].joined(separator: ","))
+            var fields: [String] = [iso.string(from: r.date), source]
+            fields.append(String(r.results.count))
+            fields.append(String(r.score))
+            fields.append(String(r.correctCount))
+            fields.append(String(Int(r.peakCPM.rounded())))
+            fields.append(String(Int(Morse.wpm(fromCPM: r.peakCPM).rounded())))
+            fields.append(String(Int(r.averageCPM.rounded())))
+            fields.append(String(Int(r.config.startCPM.rounded())))
+            fields.append(r.averageResponseMs.map { String($0) } ?? "")
+            lines.append(fields.joined(separator: ","))
         }
         return lines.joined(separator: "\n") + "\n"
     }
