@@ -95,7 +95,7 @@ Scores are only comparable between attempts that use the same callsign source an
 
 ## Releasing
 
-Push a version tag. The **Release** workflow tests, builds a universal app, and attaches `QRQ-Trainer.dmg` and
+Push a version tag (or use **Actions → Release → Run workflow** and enter the version). The **Release** workflow tests, builds a universal app, and attaches `QRQ-Trainer.dmg` and
 `QRQ-Trainer.zip` to a new GitHub Release:
 
 ```bash
