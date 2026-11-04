@@ -263,61 +263,86 @@
   const updateLabel = () => { speedLabel.textContent = `${speed.value} CPM · ${Math.round(speed.value / 5)} WPM`; };
   speed.addEventListener("input", updateLabel); updateLabel();
 
-  // Safari can leave a new AudioContext suspended, and iOS mutes web audio with the silent switch unless the
-  // page asks for "playback". Resume inside the click so the browser counts it as user-initiated.
-  async function ensureAudio() {
-    ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+  const debug = new URLSearchParams(location.search).has("debug");
+  const log = msg => { if (debug) out.textContent = msg; };
+
+  // Create and unlock the audio context synchronously inside the click: Safari only counts audio started
+  // directly in the gesture. Playing a tiny silent buffer is the long-standing way to unlock it.
+  function unlockAudio() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return false;
+    ctx = ctx || new AC();
+    // iOS mutes web audio with the silent switch unless the page asks for "playback".
     if (navigator.audioSession) { try { navigator.audioSession.type = "playback"; } catch (e) {} }
-    if (ctx.state !== "running") { try { await ctx.resume(); } catch (e) {} }
-    return ctx.state === "running";
+    if (ctx.state !== "running") { try { ctx.resume(); } catch (e) {} }
+    const silent = ctx.createBufferSource();
+    silent.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+    silent.connect(ctx.destination);
+    silent.start(0);
+    return true;
   }
 
-  function playCall(call, cpm) {
-    const dit = 6 / cpm, rise = Math.min(0.005, dit * 0.3);
+  // Renders the callsign into an audio buffer, like the Mac app does, rather than automating a gain
+  // envelope element by element (which some browsers handle unreliably).
+  function renderCall(call, cpm) {
+    const rate = ctx.sampleRate, dit = 6 / cpm, rise = Math.min(0.005, dit * 0.3);
     // Farnsworth spacing (ARRL formula): letters at full speed, gaps between letters stretched as if
     // the overall speed were 70% of it. Never shorter than standard spacing.
-    const c = cpm / 5, s = c * 0.7;
-    const ta = (60 * c - 37.2 * s) / (s * c);
+    const c = cpm / 5, sp = c * 0.7;
+    const ta = (60 * c - 37.2 * sp) / (sp * c);
     const charGap = Math.max(3 * dit, (3 * ta) / 19);
-    stopPlaying();
-    const osc = ctx.createOscillator(), gain = ctx.createGain();
-    osc.frequency.value = 600; gain.gain.value = 0;
-    playing = { osc, gain };
-    osc.onended = () => { if (playing && playing.osc === osc) playing = null; };
-    osc.connect(gain).connect(ctx.destination);
-    let t = ctx.currentTime + 0.03;
+    const tones = [];
+    let t = 0.03;
     [...call].forEach((ch, ci) => {
       if (ci) t += charGap - dit; // one dit of gap was already added after the last element
       [...MORSE[ch]].forEach(sym => {
         const len = (sym === "." ? 1 : 3) * dit;
-        gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(0.35, t + rise);
-        gain.gain.setValueAtTime(0.35, t + len - rise);
-        gain.gain.linearRampToValueAtTime(0, t + len);
+        tones.push([t, len]);
         t += len + dit;
       });
     });
-    osc.start(); osc.stop(t + 0.05);
+    const buffer = ctx.createBuffer(1, Math.ceil((t + 0.05) * rate), rate);
+    const data = buffer.getChannelData(0), w = 2 * Math.PI * 600 / rate;
+    for (const [start, len] of tones) {
+      const a = Math.round(start * rate), b = Math.round((start + len) * rate), r = rise * rate;
+      for (let i = a; i < b; i++) {
+        const env = Math.min(1, (i - a) / r, (b - i) / r);
+        data[i] = 0.35 * (0.5 - 0.5 * Math.cos(Math.PI * env)) * Math.sin(w * i);
+      }
+    }
+    return buffer;
+  }
+
+  function playCall(call, cpm) {
+    stopPlaying();
+    const src = ctx.createBufferSource(), gain = ctx.createGain();
+    src.buffer = renderCall(call, cpm);
+    src.connect(gain);
+    gain.connect(ctx.destination);
+    playing = { src, gain };
+    src.onended = () => { if (playing && playing.src === src) playing = null; };
+    src.start();
+    log(`debug: state=${ctx.state} rate=${ctx.sampleRate} time=${ctx.currentTime.toFixed(2)} length=${src.buffer.duration.toFixed(2)}s`);
   }
 
   // Cut off any callsign still sounding (with a 5 ms fade so it doesn't click) before starting again.
   function stopPlaying() {
     if (!playing || !ctx) return;
-    const { osc, gain } = playing, now = ctx.currentTime;
-    gain.gain.cancelScheduledValues(now);
-    gain.gain.setValueAtTime(gain.gain.value, now);
+    const { src, gain } = playing, now = ctx.currentTime;
+    gain.gain.setValueAtTime(1, now);
     gain.gain.linearRampToValueAtTime(0, now + 0.005);
-    try { osc.stop(now + 0.01); } catch (e) {}
+    try { src.stop(now + 0.01); } catch (e) {}
     playing = null;
   }
 
-  play.addEventListener("click", async () => {
+  play.addEventListener("click", () => {
     if (!current) { current = makeCall(); out.textContent = ""; input.value = ""; }
-    if (!(await ensureAudio())) {
-      out.textContent = "Your browser didn't allow sound. Check it isn't muted for this site, then press play again.";
-      return;
-    }
+    if (!unlockAudio()) { out.textContent = "This browser doesn't support Web Audio, so the demo can't play."; return; }
     playCall(current, Number(speed.value));
+    // If the context still isn't running shortly after, the browser is blocking sound for this page.
+    setTimeout(() => {
+      if (ctx.state !== "running") out.textContent = `Your browser hasn't allowed sound (audio is ${ctx.state}). Check the site isn't muted, then press play again.`;
+    }, 400);
     play.textContent = "↻ Play again";
     input.focus();
   });
