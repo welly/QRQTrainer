@@ -78,10 +78,18 @@ Data is stored in `~/Library/Application Support/QRQTrainer/`.
 ## Scoring
 
 ```
-points = morseUnits(callsign) × CPM / 100 × max(0, 1 − 2 × errors / length)
+max points = Morse length of the callsign (dit units) × CPM ÷ 100
+points     = max points × accuracy × answer speed
+accuracy   = max(0, 1 − 2 × errors ÷ length)                 errors = edit distance
+speed      = 1 within the grace period, then −5% per second, never below 0.5
+grace      = 1 s + 0.25 s per character, timed from the end of the callsign to Return
 ```
 
-`errors` is the edit distance between what was sent and what you typed. A repeated callsign scores 0.
+For example, `R` (`.-.`, 7 units) at 25 WPM (125 CPM) is worth 7 × 125 ÷ 100 ≈ **9**. Copied correctly within
+1.25 s it scores 9; answered after 3.25 s (2 s past the grace period) it scores 9 × 0.9 ≈ 8. A repeated callsign scores 0. The results table
+shows the **Time**, **Points** and **Max** for every callsign. You can turn the time penalty off in
+Settings → Training.
+
 Scores are only comparable between attempts that use the same callsign source and attempt length (50 is the classic).
 
 ## Releasing

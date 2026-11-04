@@ -107,6 +107,8 @@ final class TrainerModel {
     private var settings = TrainerSettings.current()
     private var nextCall: Task<Void, Never>?
     private var source = ""
+    /// When the current callsign finished playing; nil while it is still playing.
+    private var playbackEndedAt: Date?
 
     init(history: HistoryModel, library: CallsignLibrary) {
         self.history = history
@@ -151,7 +153,9 @@ final class TrainerModel {
 
     func submit() {
         guard phase == .running, awaitingAnswer, var s = session else { return }
-        let result = s.submit(entry)
+        // Answering while the call is still playing counts as instant.
+        let responseTime = playbackEndedAt.map { max(0, Date().timeIntervalSince($0)) } ?? 0
+        let result = s.submit(entry, responseTime: responseTime)
         session = s
         lastResult = result
         entry = ""
@@ -200,7 +204,11 @@ final class TrainerModel {
         let samples = MorseSynth.render(text: call, cpm: s.currentCPM, tone: settings.tone(sampleRate: player.sampleRate))
         awaitingAnswer = true
         isPlaying = true
-        player.play(samples) { [weak self] in self?.isPlaying = false }
+        playbackEndedAt = nil
+        player.play(samples) { [weak self] in
+            self?.isPlaying = false
+            self?.playbackEndedAt = Date()
+        }
     }
 
     private func finish() {

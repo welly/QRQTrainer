@@ -8,13 +8,28 @@ public struct TrainingConfig: Codable, Equatable, Sendable {
     public var stepPercent: Double
     public var minCPM: Double
     public var maxCPM: Double
+    /// Slow answers lose points (see `Scoring.timeFactor`).
+    public var responseTimePenalty: Bool
 
-    public init(count: Int = 50, startCPM: Double = 100, stepPercent: Double = 4, minCPM: Double = 25, maxCPM: Double = 999) {
+    public init(count: Int = 50, startCPM: Double = 100, stepPercent: Double = 4, minCPM: Double = 25, maxCPM: Double = 999,
+                responseTimePenalty: Bool = true) {
         self.count = count
         self.startCPM = startCPM
         self.stepPercent = stepPercent
         self.minCPM = minCPM
         self.maxCPM = maxCPM
+        self.responseTimePenalty = responseTimePenalty
+    }
+
+    // Custom decoding so history saved before a field existed still loads.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        count = try c.decode(Int.self, forKey: .count)
+        startCPM = try c.decode(Double.self, forKey: .startCPM)
+        stepPercent = try c.decode(Double.self, forKey: .stepPercent)
+        minCPM = try c.decode(Double.self, forKey: .minCPM)
+        maxCPM = try c.decode(Double.self, forKey: .maxCPM)
+        responseTimePenalty = try c.decodeIfPresent(Bool.self, forKey: .responseTimePenalty) ?? false
     }
 }
 
@@ -26,7 +41,21 @@ public struct CallResult: Codable, Equatable, Identifiable, Sendable {
     public let cpm: Double
     public let points: Int
     public let repeated: Bool
+    /// Seconds from the end of the callsign to Return (0 if answered while it was still playing). Nil in old records.
+    public let responseTime: Double?
 
+    public init(index: Int, sent: String, received: String, cpm: Double, points: Int, repeated: Bool, responseTime: Double? = nil) {
+        self.index = index
+        self.sent = sent
+        self.received = received
+        self.cpm = cpm
+        self.points = points
+        self.repeated = repeated
+        self.responseTime = responseTime
+    }
+
+    /// What this callsign was worth at the speed it was sent.
+    public var maxPoints: Int { Scoring.maxPoints(sent: sent, cpm: cpm) }
     public var isCorrect: Bool { sent == received }
     public var errors: Int { Scoring.editDistance(sent, received) }
 }
@@ -60,7 +89,7 @@ public struct TrainingSession: Sendable {
     }
 
     @discardableResult
-    public mutating func submit(_ answer: String) -> CallResult? {
+    public mutating func submit(_ answer: String, responseTime: Double? = nil) -> CallResult? {
         guard let sent = currentCallsign else { return nil }
         let received = answer.trimmingCharacters(in: .whitespaces).uppercased()
         let result = CallResult(
@@ -68,8 +97,10 @@ public struct TrainingSession: Sendable {
             sent: sent,
             received: received,
             cpm: currentCPM,
-            points: Scoring.points(sent: sent, received: received, cpm: currentCPM, repeated: currentWasRepeated),
-            repeated: currentWasRepeated
+            points: Scoring.points(sent: sent, received: received, cpm: currentCPM, repeated: currentWasRepeated,
+                                   responseTime: config.responseTimePenalty ? responseTime : nil),
+            repeated: currentWasRepeated,
+            responseTime: responseTime
         )
         results.append(result)
 
@@ -107,7 +138,12 @@ public struct AttemptRecord: Codable, Equatable, Identifiable, Sendable {
     }
 
     public var score: Int { results.reduce(0) { $0 + $1.points } }
+    public var maxScore: Int { results.reduce(0) { $0 + $1.maxPoints } }
     public var correctCount: Int { results.filter(\.isCorrect).count }
+    public var averageResponseTime: Double? {
+        let times = results.compactMap(\.responseTime)
+        return times.isEmpty ? nil : times.reduce(0, +) / Double(times.count)
+    }
     /// Highest speed at which a callsign was copied correctly.
     public var peakCPM: Double { results.filter(\.isCorrect).map(\.cpm).max() ?? 0 }
     public var averageCPM: Double { results.isEmpty ? 0 : results.map(\.cpm).reduce(0, +) / Double(results.count) }

@@ -74,9 +74,16 @@ private struct TrainingSettings: View {
     @AppStorage(Pref.maxCPM) private var maxCPM = 999.0
     @AppStorage(Pref.pauseMs) private var pauseMs = 400.0
     @AppStorage(Pref.showWPM) private var showWPM = false
+    @AppStorage(Pref.timePenalty) private var timePenalty = true
 
     var body: some View {
         Form {
+            Section {
+                Toggle("Slow answers lose points", isOn: $timePenalty)
+            } footer: {
+                Text("Timed from the end of the callsign to Return. You get 1 s plus 0.25 s per character free, then lose 5% per second, down to half points at most.")
+                    .foregroundStyle(.secondary)
+            }
             Section {
                 Picker("Show speed as", selection: $showWPM) {
                     Text("Characters per minute (CPM)").tag(false)

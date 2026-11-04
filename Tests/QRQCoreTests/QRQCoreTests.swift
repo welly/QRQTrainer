@@ -57,6 +57,23 @@ final class ScoringTests: XCTestCase {
         XCTAssertEqual(Scoring.points(sent: "DL1ABC", received: "DL1ABC", cpm: 200, repeated: true), 0)
         XCTAssertGreaterThan(Scoring.points(sent: "DL1ABC", received: "DL1ABC", cpm: 400, repeated: false), full)
     }
+
+    func testMaxPointsForR() {
+        // R = .-. = 7 units; 25 WPM = 125 CPM → 7 × 125 / 100 = 8.75 → 9
+        XCTAssertEqual(Scoring.maxPoints(sent: "R", cpm: 125), 9)
+    }
+
+    func testResponseTimePenalty() {
+        let call = "DL1ABC"  // grace = 1 + 0.25 × 6 = 2.5 s
+        XCTAssertEqual(Scoring.timeFactor(responseTime: nil, sent: call), 1)
+        XCTAssertEqual(Scoring.timeFactor(responseTime: 2.5, sent: call), 1)
+        XCTAssertEqual(Scoring.timeFactor(responseTime: 4.5, sent: call), 0.9, accuracy: 1e-9)
+        XCTAssertEqual(Scoring.timeFactor(responseTime: 60, sent: call), 0.5)
+        let fast = Scoring.points(sent: call, received: call, cpm: 200, repeated: false, responseTime: 0)
+        let slow = Scoring.points(sent: call, received: call, cpm: 200, repeated: false, responseTime: 8)
+        XCTAssertEqual(fast, Scoring.maxPoints(sent: call, cpm: 200))
+        XCTAssertLessThan(slow, fast)
+    }
 }
 
 final class SessionTests: XCTestCase {
@@ -74,6 +91,28 @@ final class SessionTests: XCTestCase {
         XCTAssertTrue(s.isFinished)
         XCTAssertNil(s.submit("X"))
         XCTAssertEqual(AttemptRecord(session: s, source: "t").peakCPM, 100)
+    }
+
+    func testPenaltyCanBeDisabled() {
+        var on = TrainingSession(config: TrainingConfig(count: 1, responseTimePenalty: true), callsigns: ["DL1ABC"])
+        var off = TrainingSession(config: TrainingConfig(count: 1, responseTimePenalty: false), callsigns: ["DL1ABC"])
+        let a = on.submit("DL1ABC", responseTime: 10)!
+        let b = off.submit("DL1ABC", responseTime: 10)!
+        XCTAssertLessThan(a.points, b.points)
+        XCTAssertEqual(b.points, b.maxPoints)
+        XCTAssertEqual(a.responseTime, 10)
+    }
+
+    func testDecodesRecordsWithoutNewFields() throws {
+        let json = """
+        {"count":1,"startCPM":100,"stepPercent":4,"minCPM":25,"maxCPM":999}
+        """
+        let c = try JSONDecoder().decode(TrainingConfig.self, from: Data(json.utf8))
+        XCTAssertFalse(c.responseTimePenalty)
+        let r = try JSONDecoder().decode(CallResult.self, from: Data("""
+        {"index":0,"sent":"K1AB","received":"K1AB","cpm":100,"points":5,"repeated":false}
+        """.utf8))
+        XCTAssertNil(r.responseTime)
     }
 }
 

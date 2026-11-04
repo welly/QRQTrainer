@@ -18,11 +18,12 @@ enum Pref {
     static let portablePercent = "portablePercent"
     static let prefixedPercent = "prefixedPercent"
     static let showWPM = "showWPM"
+    static let timePenalty = "timePenalty"
 
     static let defaults: [String: Any] = [
         count: 50, startCPM: 100.0, stepPercent: 4.0, minCPM: 25.0, maxCPM: 999.0, pauseMs: 400.0,
         pitch: 600.0, randomPitch: false, pitchSpread: 100.0, volume: 0.6, riseMs: 5.0,
-        useImported: false, portablePercent: 0.0, prefixedPercent: 0.0, showWPM: false,
+        useImported: false, portablePercent: 0.0, prefixedPercent: 0.0, showWPM: false, timePenalty: true,
     ]
 
     static func register() { UserDefaults.standard.register(defaults: defaults) }
@@ -44,6 +45,7 @@ struct TrainerSettings {
     var useImported: Bool
     var portablePercent: Double
     var prefixedPercent: Double
+    var timePenalty: Bool
 
     static func current(_ d: UserDefaults = .standard) -> TrainerSettings {
         TrainerSettings(
@@ -60,13 +62,15 @@ struct TrainerSettings {
             riseMs: d.double(forKey: Pref.riseMs),
             useImported: d.bool(forKey: Pref.useImported),
             portablePercent: d.double(forKey: Pref.portablePercent),
-            prefixedPercent: d.double(forKey: Pref.prefixedPercent)
+            prefixedPercent: d.double(forKey: Pref.prefixedPercent),
+            timePenalty: d.bool(forKey: Pref.timePenalty)
         )
     }
 
     var config: TrainingConfig {
         TrainingConfig(count: count, startCPM: startCPM, stepPercent: stepPercent,
-                       minCPM: min(minCPM, maxCPM), maxCPM: max(minCPM, maxCPM))
+                       minCPM: min(minCPM, maxCPM), maxCPM: max(minCPM, maxCPM),
+                       responseTimePenalty: timePenalty)
     }
 
     func tone(sampleRate: Double) -> ToneSettings {

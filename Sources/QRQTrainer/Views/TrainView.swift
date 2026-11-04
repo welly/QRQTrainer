@@ -333,9 +333,13 @@ private struct FeedbackRow: View {
                     }
                     Divider().frame(height: 36)
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text("+\(r.points)").font(.title3.weight(.bold)).monospacedDigit()
-                            .foregroundStyle(r.points > 0 ? Color.primary : Color.secondary)
-                        Text(SpeedFormat.string(r.cpm, wpm: showWPM)).font(.caption).foregroundStyle(.secondary)
+                        HStack(alignment: .firstTextBaseline, spacing: 3) {
+                            Text("+\(r.points)").font(.title3.weight(.bold)).monospacedDigit()
+                                .foregroundStyle(r.points > 0 ? Color.primary : Color.secondary)
+                            Text("/ \(r.maxPoints)").font(.callout).foregroundStyle(.secondary).monospacedDigit()
+                        }
+                        Text(SpeedFormat.string(r.cpm, wpm: showWPM) + (r.responseTime.map { " · " + ResponseFormat.string($0) } ?? ""))
+                            .font(.caption).foregroundStyle(.secondary).monospacedDigit()
                     }
                 }
                 .padding(.horizontal, 20)
@@ -379,13 +383,16 @@ private struct ResultsView: View {
 
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: 4), spacing: 16) {
                         StatTile(title: "Score", value: "\(record.score)",
-                                 detail: trainer.previousBest.map { "Previous best \($0)" }, symbol: "star.fill", tint: .yellow)
+                                 detail: "of \(record.maxScore) possible" + (trainer.previousBest.map { " · best \($0)" } ?? ""),
+                                 symbol: "star.fill", tint: .yellow)
                         StatTile(title: "Correct", value: "\(record.correctCount)/\(record.results.count)",
                                  detail: record.accuracy.formatted(.percent.precision(.fractionLength(0))), symbol: "checkmark.circle.fill", tint: .green)
                         StatTile(title: "Peak speed", value: SpeedFormat.string(record.peakCPM, wpm: showWPM),
                                  detail: SpeedFormat.secondary(record.peakCPM, wpm: showWPM), symbol: "speedometer", tint: .orange)
                         StatTile(title: "Average", value: SpeedFormat.string(record.averageCPM, wpm: showWPM),
-                                 detail: "Started at \(SpeedFormat.string(record.config.startCPM, wpm: showWPM))", symbol: "gauge.with.dots.needle.50percent", tint: .blue)
+                                 detail: "Started at \(SpeedFormat.string(record.config.startCPM, wpm: showWPM))"
+                                    + (record.averageResponseTime.map { " · answers \(ResponseFormat.string($0))" } ?? ""),
+                                 symbol: "gauge.with.dots.needle.50percent", tint: .blue)
                     }
 
                     Card {
@@ -461,14 +468,31 @@ struct AttemptResultsTable: View {
             TableColumn("Copied") { r in Diff.received(r).font(.body.monospaced()) }
             TableColumn("Speed") { r in Text(SpeedFormat.string(r.cpm, wpm: showWPM)).monospacedDigit() }
                 .width(90)
+            TableColumn("Time") { r in
+                Text(r.responseTime.map(ResponseFormat.string) ?? "—")
+                    .monospacedDigit()
+                    .foregroundStyle(isSlow(r) ? Color.orange : Color.secondary)
+                    .help(isSlow(r) ? "Answered after the \(ResponseFormat.string(Scoring.graceSeconds(for: r.sent))) grace period" : "")
+            }
+            .width(56)
             TableColumn("Points") { r in
                 HStack(spacing: 4) {
-                    Text("\(r.points)").monospacedDigit()
+                    Text("\(r.points)").monospacedDigit().fontWeight(.semibold)
                     if r.repeated { Image(systemName: "arrow.counterclockwise").foregroundStyle(.secondary).help("Repeated") }
                 }
             }
-            .width(70)
+            .width(64)
+            TableColumn("Max") { r in Text("\(r.maxPoints)").monospacedDigit().foregroundStyle(.secondary) }
+                .width(48)
         }
         .scrollContentBackground(.hidden)
     }
+
+    private func isSlow(_ r: CallResult) -> Bool {
+        record.config.responseTimePenalty && (r.responseTime ?? 0) > Scoring.graceSeconds(for: r.sent)
+    }
+}
+
+enum ResponseFormat {
+    static func string(_ seconds: Double) -> String { String(format: "%.1f s", seconds) }
 }
