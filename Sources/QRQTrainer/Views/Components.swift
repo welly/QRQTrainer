@@ -110,6 +110,12 @@ enum ResponseFormat {
     }
 }
 
+/// A binding that rounds to multiples of `step`. Use it instead of `Slider(step:)`, which on macOS draws a tick
+/// mark for every step.
+func snapped(_ value: Binding<Double>, to step: Double) -> Binding<Double> {
+    Binding(get: { value.wrappedValue }, set: { value.wrappedValue = ($0 / step).rounded() * step })
+}
+
 extension Date {
     var shortDateTime: String { formatted(date: .abbreviated, time: .shortened) }
 }

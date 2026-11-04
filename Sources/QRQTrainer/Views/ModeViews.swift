@@ -158,10 +158,6 @@ struct WhatToCopyCard: View {
                 .truncationMode(.tail)
                 .textSelection(.enabled)
             Spacer(minLength: 0)
-            Button("Shuffle", systemImage: "shuffle") { seed = .random(in: 0...UInt64.max) }
-                .labelStyle(.iconOnly)
-                .buttonStyle(.borderless)
-                .help("Show other examples")
         }
     }
 

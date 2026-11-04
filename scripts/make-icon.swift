@@ -6,93 +6,38 @@ import SwiftUI
 
 struct AppIcon: View {
     // Apple's macOS icon grid: an 824 pt rounded square centred on a 1024 pt canvas.
-    private let body824: CGFloat = 824
+    private let size: CGFloat = 824
     private let corner: CGFloat = 185
 
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: corner, style: .continuous)
-                .fill(LinearGradient(colors: [Color(red: 0.20, green: 0.45, blue: 1.00),
-                                              Color(red: 0.07, green: 0.13, blue: 0.45)],
+                .fill(LinearGradient(colors: [Color(red: 0.16, green: 0.42, blue: 0.98),
+                                              Color(red: 0.06, green: 0.20, blue: 0.62)],
                                      startPoint: .top, endPoint: .bottom))
-                .overlay(
-                    // Soft sheen across the top half.
-                    RoundedRectangle(cornerRadius: corner, style: .continuous)
-                        .fill(LinearGradient(colors: [.white.opacity(0.22), .clear], startPoint: .top, endPoint: .center))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: corner, style: .continuous)
-                        .strokeBorder(.white.opacity(0.12), lineWidth: 3)
-                )
-                .frame(width: body824, height: body824)
-                .shadow(color: .black.opacity(0.35), radius: 18, y: 12)
+                .frame(width: size, height: size)
+                .shadow(color: .black.opacity(0.3), radius: 16, y: 10)
 
-            RadioWaves()
-                .frame(width: body824, height: body824)
-
-            VStack(spacing: 70) {
-                MorseQ()
-                SpeedSwoosh()
-            }
-            .offset(y: 40)
+            MorseQ()
         }
         .frame(width: 1024, height: 1024)
     }
 }
 
-/// "Q" in Morse: dah dah dit dah, with motion streaks trailing each element.
+/// "Q" in Morse: dah dah dit dah. QRQ means "send faster".
 struct MorseQ: View {
-    private let height: CGFloat = 62
-    private let dah: CGFloat = 156
-    private let dit: CGFloat = 62
+    private let height: CGFloat = 76
+    private let dah: CGFloat = 152
     private let gap: CGFloat = 36
 
     var body: some View {
         HStack(spacing: gap) {
-            element(dah); element(dah); element(dit); element(dah)
+            element(dah); element(dah); element(height); element(dah)
         }
     }
 
     private func element(_ width: CGFloat) -> some View {
-        Capsule()
-            .fill(.white)
-            .frame(width: width, height: height)
-            .shadow(color: Color(red: 0.55, green: 0.80, blue: 1).opacity(0.9), radius: 22)
-    }
-}
-
-/// Tapering streak under the code: faint on the left, bright on the right, for speed.
-struct SpeedSwoosh: View {
-    var body: some View {
-        VStack(alignment: .trailing, spacing: 22) {
-            streak(width: 560, height: 14, opacity: 0.85)
-            streak(width: 400, height: 10, opacity: 0.55)
-            streak(width: 250, height: 8, opacity: 0.35)
-        }
-        .frame(width: 600, alignment: .trailing)
-    }
-
-    private func streak(width: CGFloat, height: CGFloat, opacity: Double) -> some View {
-        Capsule()
-            .fill(LinearGradient(colors: [.white.opacity(0), .white.opacity(opacity)], startPoint: .leading, endPoint: .trailing))
-            .frame(width: width, height: height)
-    }
-}
-
-/// Faint radio-wave arcs radiating from the top-right corner.
-struct RadioWaves: View {
-    var body: some View {
-        Canvas { ctx, size in
-            let centre = CGPoint(x: size.width * 0.81, y: size.height * 0.17)
-            for (i, radius) in [62.0, 118.0, 174.0].enumerated() {
-                var arc = Path()
-                arc.addArc(center: centre, radius: radius, startAngle: .degrees(100), endAngle: .degrees(170), clockwise: false)
-                ctx.stroke(arc, with: .color(.white.opacity(0.30 - Double(i) * 0.07)),
-                           style: StrokeStyle(lineWidth: 16, lineCap: .round))
-            }
-            let dot = Path(ellipseIn: CGRect(x: centre.x - 16, y: centre.y - 16, width: 32, height: 32))
-            ctx.fill(dot, with: .color(.white.opacity(0.4)))
-        }
+        Capsule().fill(.white).frame(width: width, height: height)
     }
 }
 

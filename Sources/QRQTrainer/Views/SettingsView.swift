@@ -39,7 +39,7 @@ private struct AudioSettings: View {
             Section {
                 LabeledContent("Pitch") {
                     HStack {
-                        Slider(value: $pitch, in: 300...1200, step: 10).labelsHidden()
+                        Slider(value: snapped($pitch, to: 10), in: 300...1200).labelsHidden()
                         Text("\(Int(pitch)) Hz").monospacedDigit().frame(width: 64, alignment: .trailing)
                     }
                 }
@@ -47,7 +47,7 @@ private struct AudioSettings: View {
                 if randomPitch {
                     LabeledContent("Variation") {
                         HStack {
-                            Slider(value: $pitchSpread, in: 10...300, step: 10).labelsHidden()
+                            Slider(value: snapped($pitchSpread, to: 10), in: 10...300).labelsHidden()
                             Text("± \(Int(pitchSpread)) Hz").monospacedDigit().frame(width: 64, alignment: .trailing)
                         }
                     }
@@ -63,7 +63,7 @@ private struct AudioSettings: View {
                 }
                 LabeledContent("Edge shaping") {
                     HStack {
-                        Slider(value: $riseMs, in: 1...10, step: 0.5).labelsHidden()
+                        Slider(value: snapped($riseMs, to: 0.5), in: 1...10).labelsHidden()
                         Text("\(riseMs.formatted()) ms").monospacedDigit().frame(width: 64, alignment: .trailing)
                     }
                 }
@@ -111,7 +111,7 @@ private struct TrainingSettings: View {
                 if farnsworth {
                     LabeledContent("Overall speed") {
                         HStack {
-                            Slider(value: $farnsworthPercent, in: 20...95, step: 5).labelsHidden()
+                            Slider(value: snapped($farnsworthPercent, to: 5), in: 20...95).labelsHidden()
                             Text("\(Int(farnsworthPercent))%").monospacedDigit().frame(width: 64, alignment: .trailing)
                         }
                     }
@@ -122,7 +122,7 @@ private struct TrainingSettings: View {
             Section {
                 LabeledContent("Pause before next item") {
                     HStack {
-                        Slider(value: $pauseMs, in: 0...2000, step: 50).labelsHidden()
+                        Slider(value: snapped($pauseMs, to: 50), in: 0...2000).labelsHidden()
                         Text("\(Int(pauseMs)) ms").monospacedDigit().frame(width: 64, alignment: .trailing)
                     }
                 }

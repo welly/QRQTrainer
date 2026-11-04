@@ -59,8 +59,12 @@ private struct ReadyView: View {
                                     .font(.title3.weight(.semibold))
                                     .foregroundStyle(.secondary)
                                 Spacer()
+                                Button(trainer.isTestTonePlaying ? "Stop" : "Test tone",
+                                       systemImage: trainer.isTestTonePlaying ? "stop.fill" : "speaker.wave.2") { trainer.toggleTestTone() }
+                                    .buttonStyle(.bordered)
+                                    .help("Hear this speed and your audio settings")
                             }
-                            Slider(value: $startCPM, in: 25...600, step: 5) {
+                            Slider(value: snapped($startCPM, to: 5), in: 25...600) {
                                 Text("Start speed")
                             } minimumValueLabel: {
                                 Text("\(SpeedFormat.value(25, wpm: showWPM))").font(.caption)
@@ -124,11 +128,8 @@ private struct ReadyView: View {
                     .buttonStyle(.borderedProminent)
                     .controlSize(.extraLarge)
                     .disabled(!trainer.canStart())
-                    KeyHint("⌘↩")
+                    .help("Start Attempt (⌘↩)")
                     Spacer()
-                    Button(trainer.isTestTonePlaying ? "Stop tone" : "Test tone",
-                           systemImage: trainer.isTestTonePlaying ? "stop.fill" : "speaker.wave.2") { trainer.toggleTestTone() }
-                        .buttonStyle(.bordered)
                 }
 
                 Card {
@@ -432,7 +433,7 @@ private struct ResultsView: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .controlSize(.large)
-                        KeyHint("⌘↩")
+                        .help("New Attempt (⌘↩)")
                         Button("Done") { trainer.dismissResults() }
                             .controlSize(.large)
                     }

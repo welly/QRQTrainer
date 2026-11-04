@@ -10,6 +10,9 @@ struct HistoryView: View {
     @State private var sortOrder = [KeyPathComparator(\AttemptRecord.date, order: .reverse)]
     @State private var showDetails = true
     @State private var confirmDelete = false
+    /// Height of the attempt list above the details pane; drag the divider to change it (remembered).
+    @AppStorage("historyListHeight") private var listHeight = 230.0
+    @State private var dragStart: Double?
 
     var body: some View {
         let rows = history.records.sorted(using: sortOrder)
@@ -20,7 +23,8 @@ struct HistoryView: View {
                 ContentUnavailableView("No history", systemImage: "clock.arrow.circlepath",
                                        description: Text("Every finished attempt is saved here automatically."))
             } else {
-                VSplitView {
+                GeometryReader { geo in
+                VStack(spacing: 0) {
                     Table(rows, selection: $selection, sortOrder: $sortOrder) {
                     TableColumn("Date", value: \.date) { Text($0.date.shortDateTime) }
                         .width(min: 130, ideal: 170)
@@ -42,9 +46,11 @@ struct HistoryView: View {
                     }
                 }
                 .onDeleteCommand { if !selection.isEmpty { confirmDelete = true } }
-                    .frame(maxWidth: .infinity, minHeight: 140, idealHeight: 220)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: showDetails ? clampedListHeight(total: geo.size.height) : nil)
 
                     if showDetails {
+                        divider(total: geo.size.height)
                         Group {
                             if let selected {
                                 AttemptDetail(record: selected, showWPM: showWPM)
@@ -56,8 +62,9 @@ struct HistoryView: View {
                                                        description: Text("Select a single attempt to see its details."))
                             }
                         }
-                        .frame(maxWidth: .infinity, minHeight: 260, idealHeight: 420, maxHeight: .infinity)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
+                }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -81,6 +88,32 @@ struct HistoryView: View {
         } message: {
             Text("This can't be undone.")
         }
+    }
+
+    /// The list keeps at least 120 pt, and the details pane at least 300 pt.
+    private func clampedListHeight(total: Double) -> Double {
+        min(max(120, listHeight), max(120, total - 300))
+    }
+
+    /// Draggable divider between the list and the details pane.
+    private func divider(total: Double) -> some View {
+        Rectangle()
+            .fill(Color(nsColor: .separatorColor))
+            .frame(height: 1)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 3)
+            .contentShape(Rectangle())
+            .onHover { inside in if inside { NSCursor.resizeUpDown.push() } else { NSCursor.pop() } }
+            .gesture(
+                DragGesture(minimumDistance: 1)
+                    .onChanged { value in
+                        let start = dragStart ?? clampedListHeight(total: total)
+                        dragStart = start
+                        listHeight = min(max(120, start + value.translation.height), max(120, total - 300))
+                    }
+                    .onEnded { _ in dragStart = nil }
+            )
+            .accessibilityLabel("Resize the attempt list")
     }
 
     private func exportCSV() {
