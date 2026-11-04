@@ -39,10 +39,9 @@
   nav .links { display: flex; gap: 22px; font-size: 15px; }
   nav .links a { color: var(--muted); }
 
-  .hero { display: grid; grid-template-columns: 1fr; gap: 40px; padding: 48px 0 72px; }
-  .hero .lede { max-width: 46ch; }
-  .shot { margin: 0; max-width: 760px; }
-  .shot img { display: block; width: 100%; height: auto; }
+  .hero { display: grid; grid-template-columns: 1.05fr 1fr; gap: 48px; align-items: center; padding: 48px 0 72px; }
+  .shot { margin: 0; }
+  .shot img { display: block; width: 100%; height: auto; padding: 14px; }
   .eyebrow { display: inline-flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 600; color: var(--accent);
     background: color-mix(in srgb, var(--accent) 12%, transparent); padding: 5px 12px; border-radius: 99px; }
   h1 { font-size: clamp(40px, 6vw, 64px); line-height: 1.04; letter-spacing: -0.03em; margin: 18px 0 18px; }
@@ -117,7 +116,7 @@
   footer { padding: 40px 0 60px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; }
 
   @media (max-width: 860px) {
-    .demo { grid-template-columns: 1fr; }
+    .hero, .demo { grid-template-columns: 1fr; }
     .grid { grid-template-columns: 1fr 1fr; }
     nav .links a:not(:last-child) { display: none; }
   }
@@ -151,8 +150,12 @@
       <p class="fine">Universal app for Apple Silicon &amp; Intel · <a href="https://github.com/welly/QRQTrainer/releases/latest/download/QRQ-Trainer.zip">.zip</a> · <a href="https://github.com/welly/QRQTrainer/releases">All releases</a> · <a href="#install">First-launch steps</a></p>
     </div>
 
-    <figure class="shot">
-      <img src="screenshot-train.png" width="1600" height="1010"
+    <figure class="shot window">
+      <div class="titlebar">
+        <i class="dot" style="background:#ff5f57"></i><i class="dot" style="background:#febc2e"></i><i class="dot" style="background:#28c840"></i>
+        <span>QRQ Trainer</span>
+      </div>
+      <img src="screenshot-train.png" width="1200" height="938"
            alt="QRQ Trainer's Train screen: choose what to copy, set the start speed, and start an attempt.">
     </figure>
   </header>
