@@ -41,7 +41,7 @@ struct QRQTrainerApp: App {
                     .keyboardShortcut(.escape, modifiers: [])
                     .disabled(trainer.phase != .running)
                 Divider()
-                Button("Play Test Tone") { trainer.playTestTone() }
+                Button(trainer.isTestTonePlaying ? "Stop Test Tone" : "Play Test Tone") { trainer.toggleTestTone() }
                     .keyboardShortcut("t", modifiers: [.command, .shift])
                     .disabled(trainer.phase == .running)
             }

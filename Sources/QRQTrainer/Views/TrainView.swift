@@ -55,24 +55,17 @@ private struct ReadyView: View {
                                     .monospacedDigit()
                                     .contentTransition(.numericText(value: startCPM))
                                     .animation(.snappy, value: startCPM)
-                                Picker("Unit", selection: $showWPM) {
-                                    Text("CPM").tag(false)
-                                    Text("WPM").tag(true)
-                                }
-                                .pickerStyle(.segmented)
-                                .labelsHidden()
-                                .fixedSize()
-                                Spacer()
-                                Text(SpeedFormat.secondary(startCPM, wpm: showWPM))
+                                Text(SpeedFormat.unit(wpm: showWPM))
+                                    .font(.title3.weight(.semibold))
                                     .foregroundStyle(.secondary)
-                                    .monospacedDigit()
+                                Spacer()
                             }
                             Slider(value: $startCPM, in: 25...600, step: 5) {
                                 Text("Start speed")
                             } minimumValueLabel: {
-                                Text("25").font(.caption)
+                                Text("\(SpeedFormat.value(25, wpm: showWPM))").font(.caption)
                             } maximumValueLabel: {
-                                Text("600").font(.caption)
+                                Text("\(SpeedFormat.value(600, wpm: showWPM))").font(.caption)
                             }
                             .labelsHidden()
                             if let best {
@@ -133,7 +126,8 @@ private struct ReadyView: View {
                     .disabled(!trainer.canStart())
                     KeyHint("⌘↩")
                     Spacer()
-                    Button("Test tone", systemImage: "speaker.wave.2") { trainer.playTestTone() }
+                    Button(trainer.isTestTonePlaying ? "Stop tone" : "Test tone",
+                           systemImage: trainer.isTestTonePlaying ? "stop.fill" : "speaker.wave.2") { trainer.toggleTestTone() }
                         .buttonStyle(.bordered)
                 }
 

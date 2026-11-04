@@ -6,8 +6,6 @@ enum Pref {
     static let count = "count"
     static let startCPM = "startCPM"
     static let stepPercent = "stepPercent"
-    static let minCPM = "minCPM"
-    static let maxCPM = "maxCPM"
     static let pauseMs = "pauseMs"
     static let pitch = "pitch"
     static let randomPitch = "randomPitch"
@@ -31,7 +29,7 @@ enum Pref {
     static let allCharacters = String(CharacterClass.allCharacters)
 
     static let defaults: [String: Any] = [
-        count: 50, startCPM: 100.0, stepPercent: 4.0, minCPM: 25.0, maxCPM: 999.0, pauseMs: 400.0,
+        count: 50, startCPM: 100.0, stepPercent: 4.0, pauseMs: 400.0,
         pitch: 600.0, randomPitch: false, pitchSpread: 100.0, volume: 0.6, riseMs: 5.0,
         useImported: false, portablePercent: 0.0, prefixedPercent: 0.0, showWPM: false,
         mode: TrainerMode.callsigns.rawValue, variableLength: false, groupLength: 5, groupMin: 1, groupMax: 12,
@@ -47,8 +45,6 @@ struct TrainerSettings {
     var count: Int
     var startCPM: Double
     var stepPercent: Double
-    var minCPM: Double
-    var maxCPM: Double
     var pauseMs: Double
     var pitch: Double
     var randomPitch: Bool
@@ -71,8 +67,6 @@ struct TrainerSettings {
             count: max(1, d.integer(forKey: Pref.count)),
             startCPM: d.double(forKey: Pref.startCPM),
             stepPercent: d.double(forKey: Pref.stepPercent),
-            minCPM: d.double(forKey: Pref.minCPM),
-            maxCPM: d.double(forKey: Pref.maxCPM),
             pauseMs: d.double(forKey: Pref.pauseMs),
             pitch: d.double(forKey: Pref.pitch),
             randomPitch: d.bool(forKey: Pref.randomPitch),
@@ -120,8 +114,8 @@ struct TrainerSettings {
     }
 
     var config: TrainingConfig {
-        TrainingConfig(count: count, startCPM: startCPM, stepPercent: stepPercent,
-                       minCPM: min(minCPM, maxCPM), maxCPM: max(minCPM, maxCPM))
+        // Speed adapts within TrainingConfig's default limits (25–999 CPM).
+        TrainingConfig(count: count, startCPM: startCPM, stepPercent: stepPercent)
     }
 
     func tone(sampleRate: Double) -> ToneSettings {

@@ -1,8 +1,11 @@
+import AppKit
 import QRQCore
 import SwiftUI
 import UniformTypeIdentifiers
 
 struct SettingsView: View {
+    @Environment(TrainerModel.self) private var trainer
+
     var body: some View {
         TabView {
             AudioSettings().tabItem { Label("Audio", systemImage: "speaker.wave.2") }
@@ -12,6 +15,14 @@ struct SettingsView: View {
         }
         .frame(width: 520)
         .scenePadding()
+        // Don't leave the test tone playing once Settings is closed. SwiftUI may keep this view alive when the
+        // window closes, so watch for the window closing as well as the view disappearing.
+        .onDisappear { trainer.stopTestTone() }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { note in
+            if let window = note.object as? NSWindow, window.identifier?.rawValue.contains("Settings") == true {
+                trainer.stopTestTone()
+            }
+        }
     }
 }
 
@@ -61,7 +72,8 @@ private struct AudioSettings: View {
                     .foregroundStyle(.secondary)
             }
             Section {
-                Button("Play Test Tone", systemImage: "play.circle") { trainer.playTestTone() }
+                Button(trainer.isTestTonePlaying ? "Stop Test Tone" : "Play Test Tone",
+                       systemImage: trainer.isTestTonePlaying ? "stop.circle" : "play.circle") { trainer.toggleTestTone() }
                     .disabled(trainer.phase == .running)
             }
         }
@@ -71,8 +83,6 @@ private struct AudioSettings: View {
 
 private struct TrainingSettings: View {
     @AppStorage(Pref.stepPercent) private var stepPercent = 4.0
-    @AppStorage(Pref.minCPM) private var minCPM = 25.0
-    @AppStorage(Pref.maxCPM) private var maxCPM = 999.0
     @AppStorage(Pref.pauseMs) private var pauseMs = 400.0
     @AppStorage(Pref.showWPM) private var showWPM = false
     @AppStorage(Pref.farnsworth) private var farnsworth = false
@@ -91,12 +101,6 @@ private struct TrainingSettings: View {
                 LabeledContent("Speed change per copy") {
                     Stepper("\(stepPercent.formatted())%", value: $stepPercent, in: 1...10, step: 0.5)
                         .monospacedDigit()
-                }
-                LabeledContent("Minimum speed") {
-                    Stepper("\(Int(minCPM)) CPM", value: $minCPM, in: 25...300, step: 5).monospacedDigit()
-                }
-                LabeledContent("Maximum speed") {
-                    Stepper("\(Int(maxCPM)) CPM", value: $maxCPM, in: 100...999, step: 10).monospacedDigit()
                 }
             } footer: {
                 Text("A correct copy raises the speed by this percentage, a miss lowers it. Repeats don't raise it.")

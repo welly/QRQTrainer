@@ -43,6 +43,12 @@ To build a double-clickable, universal `.app` in `build/`:
 ./scripts/build-app.sh
 ```
 
+The app icon (`Resources/AppIcon.icns`) is drawn in code. After changing the design in `scripts/make-icon.swift`, regenerate it with:
+
+```bash
+swift scripts/make-icon.swift Resources/AppIcon-1024.png
+```
+
 Run the core unit tests:
 
 ```bash

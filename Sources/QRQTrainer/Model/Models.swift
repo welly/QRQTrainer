@@ -136,6 +136,7 @@ final class TrainerModel {
 
     func start() {
         guard phase != .running else { return }
+        stopTestTone()
         settings = .current()
         var rng = SystemRandomNumberGenerator()
         let calls: [String]
@@ -233,11 +234,24 @@ final class TrainerModel {
         phase = .finished
     }
 
-    /// Short sample so the user can hear their audio settings.
-    func playTestTone() {
+    /// True while the test tone is playing.
+    private(set) var isTestTonePlaying = false
+
+    /// Plays a short "VVV" so the user can hear their audio settings, or stops it if it's already playing.
+    func toggleTestTone() {
+        if isTestTonePlaying { stopTestTone(); return }
         guard phase != .running else { return }
         let s = TrainerSettings.current()
-        player.play(MorseSynth.render(text: "VVV DL1ABC", cpm: s.startCPM, tone: s.tone(sampleRate: player.sampleRate),
-                                      farnsworth: s.farnsworth))
+        isTestTonePlaying = true
+        player.play(MorseSynth.render(text: "VVV", cpm: s.startCPM, tone: s.tone(sampleRate: player.sampleRate),
+                                      farnsworth: s.farnsworth)) { [weak self] in
+            self?.isTestTonePlaying = false
+        }
+    }
+
+    func stopTestTone() {
+        guard isTestTonePlaying else { return }
+        player.stop()
+        isTestTonePlaying = false
     }
 }
