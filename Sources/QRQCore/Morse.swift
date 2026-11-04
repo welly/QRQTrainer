@@ -25,6 +25,7 @@ public enum Morse {
         "0": "-----", "1": ".----", "2": "..---", "3": "...--", "4": "....-",
         "5": ".....", "6": "-....", "7": "--...", "8": "---..", "9": "----.",
         "/": "-..-.", "?": "..--..", ".": ".-.-.-", ",": "--..--", "=": "-...-",
+        "+": ".-.-.", "-": "-....-", "(": "-.--.", ")": "-.--.-", "@": ".--.-.", "'": ".----.", ":": "---...",
     ]
 
     public static func code(for character: Character) -> String? {
@@ -92,24 +93,48 @@ public struct ToneSettings: Equatable, Sendable {
 }
 
 /// Renders Morse code into mono Float32 PCM with click-free envelopes.
+///
+/// `effectiveCPM` enables Farnsworth spacing: characters are sent at `cpm`, but the gaps between characters
+/// and words are stretched so the overall speed is `effectiveCPM` (ARRL formula). Nil or ≥ `cpm` = standard spacing.
 public enum MorseSynth {
-    public static func duration(of text: String, cpm: Double, leadIn: Double = 0, tail: Double = 0) -> Double {
-        leadIn + Double(Morse.units(of: text)) * Morse.ditSeconds(cpm: cpm) + tail
+    /// Gap lengths in seconds between characters and between words.
+    public static func gaps(cpm: Double, effectiveCPM: Double?) -> (character: Double, word: Double) {
+        let dit = Morse.ditSeconds(cpm: cpm)
+        guard let eff = effectiveCPM, eff > 0, eff < cpm else { return (3 * dit, 7 * dit) }
+        let c = Morse.wpm(fromCPM: cpm), s = Morse.wpm(fromCPM: eff)
+        let ta = (60 * c - 37.2 * s) / (s * c)  // total extra delay per PARIS word, spread over 19 gap units
+        return (max(3 * dit, 3 * ta / 19), max(7 * dit, 7 * ta / 19))
+    }
+
+    /// Key-down / key-up segments with their durations in seconds.
+    public static func timeline(for text: String, cpm: Double, effectiveCPM: Double? = nil) -> [(isOn: Bool, seconds: Double)] {
+        let dit = Morse.ditSeconds(cpm: cpm)
+        let g = gaps(cpm: cpm, effectiveCPM: effectiveCPM)
+        return Morse.keying(for: text).map { e -> (isOn: Bool, seconds: Double) in
+            if !e.isOn && e.units == 3 { return (false, g.character) }
+            if !e.isOn && e.units == 7 { return (false, g.word) }
+            return (e.isOn, Double(e.units) * dit)
+        }
+    }
+
+    public static func duration(of text: String, cpm: Double, effectiveCPM: Double? = nil, leadIn: Double = 0, tail: Double = 0) -> Double {
+        leadIn + timeline(for: text, cpm: cpm, effectiveCPM: effectiveCPM).reduce(0) { $0 + $1.seconds } + tail
     }
 
     public static func render(
         text: String,
         cpm: Double,
+        effectiveCPM: Double? = nil,
         tone: ToneSettings,
         leadIn: Double = 0.05,
         tail: Double = 0.05
     ) -> [Float] {
         let sr = tone.sampleRate
         let dit = Morse.ditSeconds(cpm: cpm)
-        let elements = Morse.keying(for: text)
-        let total = Int((duration(of: text, cpm: cpm, leadIn: leadIn, tail: tail) * sr).rounded(.up))
+        let segments = timeline(for: text, cpm: cpm, effectiveCPM: effectiveCPM)
+        let total = Int((duration(of: text, cpm: cpm, effectiveCPM: effectiveCPM, leadIn: leadIn, tail: tail) * sr).rounded(.up))
         var samples = [Float](repeating: 0, count: max(total, 0))
-        guard !elements.isEmpty, total > 0 else { return samples }
+        guard !segments.isEmpty, total > 0 else { return samples }
 
         // At ultra-high speed keep edges well inside the element so dits stay distinct.
         let rise = max(0.0005, min(tone.riseTime, dit * 0.3))
@@ -117,11 +142,10 @@ public enum MorseSynth {
         let amp = max(0, min(1, tone.amplitude))
 
         var t = leadIn
-        for element in elements {
-            let length = Double(element.units) * dit
-            if element.isOn {
+        for segment in segments {
+            if segment.isOn {
                 let start = Int((t * sr).rounded())
-                let end = min(Int(((t + length) * sr).rounded()), samples.count)
+                let end = min(Int(((t + segment.seconds) * sr).rounded()), samples.count)
                 if start < end {
                     for i in start..<end {
                         let fromStart = Double(i - start) / sr
@@ -134,7 +158,7 @@ public enum MorseSynth {
                     }
                 }
             }
-            t += length
+            t += segment.seconds
         }
         return samples
     }

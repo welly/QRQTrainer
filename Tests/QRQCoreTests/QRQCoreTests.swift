@@ -200,3 +200,54 @@ final class CharacterAnalysisTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(picked.filter { $0.hasSuffix("H") }.count, 15)
     }
 }
+
+final class FarnsworthAndContentTests: XCTestCase {
+    func testStandardGapsUnchanged() {
+        let g = MorseSynth.gaps(cpm: 100, effectiveCPM: nil)
+        XCTAssertEqual(g.character, 3 * Morse.ditSeconds(cpm: 100), accuracy: 1e-12)
+        XCTAssertEqual(g.word, 7 * Morse.ditSeconds(cpm: 100), accuracy: 1e-12)
+        // Effective speed equal to character speed is standard spacing too.
+        XCTAssertEqual(MorseSynth.gaps(cpm: 100, effectiveCPM: 100).character, g.character, accuracy: 1e-9)
+    }
+
+    func testFarnsworthStretchesOnlyGaps() {
+        // ARRL: 18 WPM characters at 10 WPM overall → ta = (60·18 − 37.2·10)/(10·18) = 3.933 s
+        let g = MorseSynth.gaps(cpm: 90, effectiveCPM: 50)
+        XCTAssertEqual(g.character, 3 * 3.9333 / 19, accuracy: 1e-3)
+        let normal = MorseSynth.duration(of: "AB", cpm: 90)
+        let farns = MorseSynth.duration(of: "AB", cpm: 90, effectiveCPM: 50)
+        XCTAssertEqual(farns - normal, g.character - 3 * Morse.ditSeconds(cpm: 90), accuracy: 1e-9)
+        XCTAssertEqual(MorseSynth.duration(of: "E", cpm: 90, effectiveCPM: 50), MorseSynth.duration(of: "E", cpm: 90), accuracy: 1e-12)
+    }
+
+    func testConfigEffectiveSpeed() {
+        XCTAssertNil(TrainingConfig().effectiveCPM(at: 200))
+        XCTAssertEqual(TrainingConfig(farnsworthPercent: 70).effectiveCPM(at: 200), 140)
+    }
+
+    func testGroups() {
+        var rng = SeededRandom(seed: 9)
+        let groups = GroupGenerator(content: .numbers, length: 5).generate(50, using: &rng)
+        XCTAssertEqual(groups.count, 50)
+        XCTAssertTrue(groups.allSatisfy { $0.count == 5 && $0.allSatisfy(\.isNumber) })
+        let symbols = GroupGenerator(content: .symbols, length: 4).generate(20, using: &rng)
+        XCTAssertTrue(symbols.allSatisfy { $0.allSatisfy { Morse.code(for: $0) != nil } })
+        let focused = GroupGenerator(content: .letters, length: 5).generate(40, focusing: ["Q"], using: &rng)
+        let qs = focused.joined().filter { $0 == "Q" }.count
+        XCTAssertGreaterThan(qs, 60)  // ~50% of 200 characters
+    }
+
+    func testEveryContentCharacterHasMorse() {
+        for content in TrainingContent.allCases {
+            for c in content.characters ?? [] { XCTAssertNotNil(Morse.code(for: c), "\(c)") }
+        }
+    }
+
+    func testOldConfigDecodesWithDefaults() throws {
+        let c = try JSONDecoder().decode(TrainingConfig.self, from: Data("""
+        {"count":1,"startCPM":100,"stepPercent":4,"minCPM":25,"maxCPM":999}
+        """.utf8))
+        XCTAssertEqual(c.content, .callsigns)
+        XCTAssertEqual(c.farnsworthPercent, 100)
+    }
+}

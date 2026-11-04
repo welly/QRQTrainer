@@ -29,6 +29,12 @@ struct QRQTrainerApp: App {
         .windowToolbarStyle(.unified)
         .commands {
             CommandGroup(replacing: .newItem) {}
+            // No Edit or Help menus: nothing to edit, and no help book yet. Emptied here, removed in AppDelegate.
+            CommandGroup(replacing: .undoRedo) {}
+            CommandGroup(replacing: .pasteboard) {}
+            CommandGroup(replacing: .textEditing) {}
+            CommandGroup(replacing: .textFormatting) {}
+            CommandGroup(replacing: .help) {}
             CommandMenu("Training") {
                 Button("Start Attempt") { trainer.start() }
                     .keyboardShortcut(.return, modifiers: .command)
@@ -56,10 +62,34 @@ struct QRQTrainerApp: App {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        // Stop AppKit adding "Start Dictation…" and "Emoji & Symbols" (which would recreate an Edit menu).
+        UserDefaults.standard.set(true, forKey: "NSDisabledDictationMenuItem")
+        UserDefaults.standard.set(true, forKey: "NSDisabledCharacterPaletteMenuItem")
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Needed when launched via `swift run` (no .app bundle) so the window comes to the front.
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
+        DispatchQueue.main.async { MainActor.assumeIsolated { Self.removeUnusedMenus() } }
+        // SwiftUI can rebuild the main menu (e.g. when windows change), so prune again when items are added.
+        NotificationCenter.default.addObserver(forName: NSMenu.didAddItemNotification, object: nil, queue: .main) { note in
+            MainActor.assumeIsolated {
+                guard let menu = note.object as? NSMenu, menu === NSApp.mainMenu else { return }
+                Self.removeUnusedMenus()
+            }
+        }
+    }
+
+    @MainActor
+    static func removeUnusedMenus() {
+        guard let menu = NSApp.mainMenu else { return }
+        let help = NSApp.helpMenu
+        for item in menu.items {
+            let isHelp = help != nil && item.submenu === help
+            if isHelp || item.title == "Edit" || item.title == "Help" { menu.removeItem(item) }
+        }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }

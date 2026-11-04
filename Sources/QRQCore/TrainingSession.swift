@@ -10,9 +10,18 @@ public struct TrainingConfig: Codable, Equatable, Sendable {
     public var maxCPM: Double
     /// Slow answers lose points (see `Scoring.timeFactor`).
     public var responseTimePenalty: Bool
+    public var content: TrainingContent
+    /// Length of random groups (not used for callsigns).
+    public var groupLength: Int
+    /// Farnsworth spacing: overall speed as a percentage of character speed. 100 = standard spacing.
+    public var farnsworthPercent: Double
 
     public init(count: Int = 50, startCPM: Double = 100, stepPercent: Double = 4, minCPM: Double = 25, maxCPM: Double = 999,
-                responseTimePenalty: Bool = true) {
+                responseTimePenalty: Bool = true, content: TrainingContent = .callsigns, groupLength: Int = 5,
+                farnsworthPercent: Double = 100) {
+        self.content = content
+        self.groupLength = groupLength
+        self.farnsworthPercent = farnsworthPercent
         self.count = count
         self.startCPM = startCPM
         self.stepPercent = stepPercent
@@ -30,6 +39,14 @@ public struct TrainingConfig: Codable, Equatable, Sendable {
         minCPM = try c.decode(Double.self, forKey: .minCPM)
         maxCPM = try c.decode(Double.self, forKey: .maxCPM)
         responseTimePenalty = try c.decodeIfPresent(Bool.self, forKey: .responseTimePenalty) ?? false
+        content = try c.decodeIfPresent(TrainingContent.self, forKey: .content) ?? .callsigns
+        groupLength = try c.decodeIfPresent(Int.self, forKey: .groupLength) ?? 5
+        farnsworthPercent = try c.decodeIfPresent(Double.self, forKey: .farnsworthPercent) ?? 100
+    }
+
+    /// Effective (overall) speed for Farnsworth spacing at character speed `cpm`, or nil for standard spacing.
+    public func effectiveCPM(at cpm: Double) -> Double? {
+        farnsworthPercent < 100 ? cpm * max(farnsworthPercent, 10) / 100 : nil
     }
 }
 

@@ -115,10 +115,21 @@ final class TrainerModel {
         self.library = library
     }
 
-    /// Name of the callsign source the next attempt will use. Scores are compared within a source.
-    func sourceName(useImported: Bool) -> String {
-        if useImported, !library.calls.isEmpty { return library.name ?? "Imported list" }
-        return "Generated"
+    /// Name for what the next attempt will send. Scores and bests are compared within a source, so anything
+    /// that changes difficulty (content, group length, Farnsworth spacing) is part of the name.
+    func sourceName(useImported: Bool, content: TrainingContent, groupLength: Int, farnsworth: Double) -> String {
+        var name: String
+        if content == .callsigns {
+            name = useImported && !library.calls.isEmpty ? (library.name ?? "Imported list") : "Generated"
+        } else {
+            name = "\(content.title) · \(groupLength)"
+        }
+        if farnsworth < 100 { name += " · Farnsworth \(Int(farnsworth))%" }
+        return name
+    }
+
+    func sourceName(for s: TrainerSettings) -> String {
+        sourceName(useImported: s.useImported, content: s.content, groupLength: s.groupLength, farnsworth: s.farnsworthPercent)
     }
 
     var isNewBest: Bool {
@@ -133,7 +144,10 @@ final class TrainerModel {
         var rng = SystemRandomNumberGenerator()
         let calls: [String]
         let useList = settings.useImported && !library.calls.isEmpty
-        if useList {
+        if settings.content != .callsigns {
+            calls = GroupGenerator(content: settings.content, length: settings.groupLength)
+                .generate(settings.count, focusing: focus, using: &rng)
+        } else if useList {
             calls = focus.isEmpty
                 ? CallsignList.pick(settings.count, from: library.calls, using: &rng)
                 : CallsignList.pick(settings.count, from: library.calls, focusing: focus, using: &rng)
@@ -142,11 +156,12 @@ final class TrainerModel {
             let generator = CallsignGenerator(portableProbability: settings.portablePercent / 100,
                                               prefixedProbability: settings.prefixedPercent / 100)
             calls = generator.generate(settings.count, focusing: focus, using: &rng)
-            source = "Generated"
         }
+        source = sourceName(for: settings)
         // Focused drills are easier to score on, so they're kept apart from regular attempts.
         if !focus.isEmpty {
             source = "Focus: " + focus.sorted().map(String.init).joined(separator: " ")
+                + (settings.content == .callsigns ? "" : " · \(settings.content.title)")
         }
         guard !calls.isEmpty else { return }
 
@@ -209,7 +224,8 @@ final class TrainerModel {
 
     private func playCurrent() {
         guard phase == .running, let s = session, let call = s.currentCallsign else { return }
-        let samples = MorseSynth.render(text: call, cpm: s.currentCPM, tone: settings.tone(sampleRate: player.sampleRate))
+        let samples = MorseSynth.render(text: call, cpm: s.currentCPM, effectiveCPM: s.config.effectiveCPM(at: s.currentCPM),
+                                        tone: settings.tone(sampleRate: player.sampleRate))
         awaitingAnswer = true
         isPlaying = true
         playbackEndedAt = nil
@@ -231,6 +247,7 @@ final class TrainerModel {
     func playTestTone() {
         guard phase != .running else { return }
         let s = TrainerSettings.current()
-        player.play(MorseSynth.render(text: "VVV DL1ABC", cpm: s.startCPM, tone: s.tone(sampleRate: player.sampleRate)))
+        player.play(MorseSynth.render(text: "VVV DL1ABC", cpm: s.startCPM, effectiveCPM: s.config.effectiveCPM(at: s.startCPM),
+                                      tone: s.tone(sampleRate: player.sampleRate)))
     }
 }

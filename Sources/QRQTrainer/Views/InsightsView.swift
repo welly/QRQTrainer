@@ -82,7 +82,7 @@ struct InsightsView: View {
                                     AccuracyLegend()
                                 }
                                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 58, maximum: 80), spacing: 8)], spacing: 8) {
-                                    ForEach(CharacterAnalysis.alphabet, id: \.self) { c in
+                                    ForEach(CharacterAnalysis.alphabet + TrainingContent.symbolSet.filter { c in c != "/" && analysis.stat(for: c).sent > 0 }, id: \.self) { c in
                                         CharacterCell(stat: analysis.stat(for: c), minSamples: minSamples,
                                                       mixUp: topMixUp(for: c, in: analysis))
                                     }

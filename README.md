@@ -14,6 +14,8 @@ Built with SwiftUI, Swift Charts and AVAudioEngine. Requires **macOS 14 Sonoma o
 
 ## Features
 
+- **What to copy.** Callsigns, letters, numbers, letters & numbers, punctuation, or everything mixed, in groups of 2–10 characters.
+- **Farnsworth spacing.** Optional extra space between characters (standard, a little, more, lots), while each character stays at full speed. Scores are kept separately.
 - **Adaptive speed.** Every correct copy raises the speed by a configurable percentage (4% by default); every miss lowers it.
 - **Real-speed Morse.** Each callsign is rendered sample-accurately with raised-cosine keying. It stays clean well beyond 600 CPM (120 WPM), with no element jitter.
 - **Scoring.** Points grow with the callsign's Morse length and the speed it was sent at. Each wrong character costs points, and a repeated callsign (F6 / ⌘R) scores nothing.
@@ -64,8 +66,9 @@ Then go to **Settings → Callsigns → Import File…** and pick `~/Downloads/M
 
 | Path | What |
 | --- | --- |
-| `Sources/QRQCore/Morse.swift` | Morse table, PARIS timing, PCM synthesis |
+| `Sources/QRQCore/Morse.swift` | Morse table, PARIS and Farnsworth timing, PCM synthesis |
 | `Sources/QRQCore/Callsigns.swift` | Callsign generator, list parser, seeded RNG |
+| `Sources/QRQCore/TrainingContent.swift` | Letters/numbers/punctuation groups |
 | `Sources/QRQCore/Scoring.swift` | Edit distance, mistake alignment, points |
 | `Sources/QRQCore/TrainingSession.swift` | Attempt rules (speed adaptation, repeats) and records |
 | `Sources/QRQCore/CharacterAnalysis.swift` | Per-character accuracy, mix-ups, speed bands, focused drills |

@@ -19,11 +19,15 @@ enum Pref {
     static let prefixedPercent = "prefixedPercent"
     static let showWPM = "showWPM"
     static let timePenalty = "timePenalty"
+    static let content = "content"
+    static let groupLength = "groupLength"
+    static let farnsworth = "farnsworthPercent"
 
     static let defaults: [String: Any] = [
         count: 50, startCPM: 100.0, stepPercent: 4.0, minCPM: 25.0, maxCPM: 999.0, pauseMs: 400.0,
         pitch: 600.0, randomPitch: false, pitchSpread: 100.0, volume: 0.6, riseMs: 5.0,
         useImported: false, portablePercent: 0.0, prefixedPercent: 0.0, showWPM: false, timePenalty: true,
+        content: TrainingContent.callsigns.rawValue, groupLength: 5, farnsworth: 100.0,
     ]
 
     static func register() { UserDefaults.standard.register(defaults: defaults) }
@@ -46,6 +50,9 @@ struct TrainerSettings {
     var portablePercent: Double
     var prefixedPercent: Double
     var timePenalty: Bool
+    var content: TrainingContent
+    var groupLength: Int
+    var farnsworthPercent: Double
 
     static func current(_ d: UserDefaults = .standard) -> TrainerSettings {
         TrainerSettings(
@@ -63,14 +70,18 @@ struct TrainerSettings {
             useImported: d.bool(forKey: Pref.useImported),
             portablePercent: d.double(forKey: Pref.portablePercent),
             prefixedPercent: d.double(forKey: Pref.prefixedPercent),
-            timePenalty: d.bool(forKey: Pref.timePenalty)
+            timePenalty: d.bool(forKey: Pref.timePenalty),
+            content: TrainingContent(rawValue: d.string(forKey: Pref.content) ?? "") ?? .callsigns,
+            groupLength: min(10, max(2, d.integer(forKey: Pref.groupLength))),
+            farnsworthPercent: min(100, max(40, d.double(forKey: Pref.farnsworth)))
         )
     }
 
     var config: TrainingConfig {
         TrainingConfig(count: count, startCPM: startCPM, stepPercent: stepPercent,
                        minCPM: min(minCPM, maxCPM), maxCPM: max(minCPM, maxCPM),
-                       responseTimePenalty: timePenalty)
+                       responseTimePenalty: timePenalty, content: content, groupLength: groupLength,
+                       farnsworthPercent: farnsworthPercent)
     }
 
     func tone(sampleRate: Double) -> ToneSettings {

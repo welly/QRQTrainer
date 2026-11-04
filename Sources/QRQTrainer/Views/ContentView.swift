@@ -1,3 +1,4 @@
+import QRQCore
 import SwiftUI
 
 enum SidebarItem: String, CaseIterable, Identifiable {
@@ -67,11 +68,14 @@ struct ContentView: View {
 private struct SidebarFooter: View {
     @Environment(TrainerModel.self) private var trainer
     @AppStorage(Pref.useImported) private var useImported = false
+    @AppStorage(Pref.content) private var content: TrainingContent = .callsigns
+    @AppStorage(Pref.groupLength) private var groupLength = 5
+    @AppStorage(Pref.farnsworth) private var farnsworth = 100.0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Callsigns").font(.caption).foregroundStyle(.secondary)
-            Label(trainer.sourceName(useImported: useImported), systemImage: "antenna.radiowaves.left.and.right")
+            Text("Copying").font(.caption).foregroundStyle(.secondary)
+            Label(trainer.sourceName(useImported: useImported, content: content, groupLength: groupLength, farnsworth: farnsworth), systemImage: "antenna.radiowaves.left.and.right")
                 .font(.callout)
                 .lineLimit(1)
             SettingsLink {

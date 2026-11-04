@@ -27,9 +27,12 @@ private struct ReadyView: View {
     @AppStorage(Pref.count) private var count = 50
     @AppStorage(Pref.showWPM) private var showWPM = false
     @AppStorage(Pref.useImported) private var useImported = false
+    @AppStorage(Pref.content) private var content: TrainingContent = .callsigns
+    @AppStorage(Pref.groupLength) private var groupLength = 5
+    @AppStorage(Pref.farnsworth) private var farnsworth = 100.0
 
     var body: some View {
-        let source = trainer.sourceName(useImported: useImported)
+        let source = trainer.sourceName(useImported: useImported, content: content, groupLength: groupLength, farnsworth: farnsworth)
         let attempts = history.records(source: source)
         let best = history.best(source: source)
 
@@ -38,9 +41,11 @@ private struct ReadyView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Ready to copy")
                         .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                    Text("Listen to each callsign, type it, press Return. Copy correctly and the speed goes up; miss and it drops.")
+                    Text("Listen, type what you heard, press Return. Copy correctly and the speed goes up; miss and it drops.")
                         .foregroundStyle(.secondary)
                 }
+
+                ContentPicker(content: $content, groupLength: $groupLength, farnsworth: $farnsworth)
 
                 HStack(alignment: .top, spacing: 16) {
                     Card {
@@ -84,7 +89,7 @@ private struct ReadyView: View {
 
                     Card {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Callsigns per attempt").font(.headline)
+                            Text(content == .callsigns ? "Callsigns per attempt" : "Groups per attempt").font(.headline)
                             Picker("Callsigns", selection: $count) {
                                 ForEach([10, 25, 50, 100], id: \.self) { Text("\($0)").tag($0) }
                             }
@@ -159,6 +164,70 @@ private struct ReadyView: View {
     }
 }
 
+/// Choose what to copy (callsigns, letters, numbers…), group length and Farnsworth spacing.
+private struct ContentPicker: View {
+    @Binding var content: TrainingContent
+    @Binding var groupLength: Int
+    @Binding var farnsworth: Double
+
+    private static let spacingOptions: [(String, Double)] = [("Standard", 100), ("A little", 85), ("More", 70), ("Lots", 55)]
+
+    var body: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("What to copy").font(.headline)
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 10)], spacing: 10) {
+                    ForEach(TrainingContent.allCases) { option in
+                        let selected = option == content
+                        Button {
+                            withAnimation(.snappy) { content = option }
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(option.title).font(.subheadline.weight(.semibold))
+                                Text(option.example).font(.callout.monospaced()).foregroundStyle(.secondary)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .background(selected ? Color.accentColor.opacity(0.14) : Color.primary.opacity(0.04),
+                                        in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .strokeBorder(selected ? Color.accentColor : Color.clear, lineWidth: 1.5))
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityAddTraits(selected ? .isSelected : [])
+                    }
+                }
+
+                HStack(spacing: 24) {
+                    if content != .callsigns {
+                        LabeledContent("Group length") {
+                            Stepper("\(groupLength) characters", value: $groupLength, in: 2...10).monospacedDigit()
+                        }
+                        .fixedSize()
+                    }
+                    LabeledContent("Letter spacing") {
+                        Picker("Letter spacing", selection: $farnsworth) {
+                            ForEach(Self.spacingOptions, id: \.1) { Text($0.0).tag($0.1) }
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        .fixedSize()
+                    }
+                    .help("Farnsworth spacing: characters stay at full speed, with extra space between them.")
+                    Spacer(minLength: 0)
+                }
+                if farnsworth < 100 {
+                    Text("Farnsworth spacing: characters at full speed, gaps as if sent at \(Int(farnsworth))% of it. Scores are kept separately from standard spacing.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Copying
 
 private struct CopyingView: View {
@@ -173,7 +242,7 @@ private struct CopyingView: View {
 
         VStack(spacing: 0) {
             HStack {
-                Text("Callsign \(min((session?.index ?? 0) + 1, session?.callsigns.count ?? 0)) of \(session?.callsigns.count ?? 0)")
+                Text("\(session?.config.content == .callsigns ? "Callsign" : "Group") \(min((session?.index ?? 0) + 1, session?.callsigns.count ?? 0)) of \(session?.callsigns.count ?? 0)")
                     .font(.headline)
                     .monospacedDigit()
                 Spacer()
@@ -208,7 +277,7 @@ private struct CopyingView: View {
                 .focused($fieldFocused)
                 .onSubmit { trainer.submit() }
                 .onChange(of: trainer.entry) { _, new in
-                    let clean = String(new.uppercased().filter { ($0.isASCII && ($0.isLetter || $0.isNumber)) || $0 == "/" }.prefix(15))
+                    let clean = String(new.uppercased().filter { Morse.table[$0] != nil }.prefix(15))
                     if clean != new { trainer.entry = clean }
                 }
                 .padding(.vertical, 18)
@@ -231,7 +300,7 @@ private struct CopyingView: View {
                 Button("Repeat", systemImage: "arrow.counterclockwise") { trainer.repeatCurrent() }
                     .disabled(!trainer.awaitingAnswer)
                 KeyHint("F6")
-                Text("no points for a repeated call").font(.caption).foregroundStyle(.secondary)
+                Text("no points when repeated").font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 KeyHint("esc")
                 Button("End Attempt", systemImage: "xmark", role: .destructive) { trainer.abort() }
