@@ -7,6 +7,11 @@ just pure speed work.
 
 Built with SwiftUI, Swift Charts and AVAudioEngine. Requires **macOS 14 Sonoma or later** and runs natively on Apple Silicon and Intel.
 
+**[Download the latest release](https://github.com/welly/QRQTrainer/releases/latest/download/QRQ-Trainer.dmg)** · [Website](https://welly.github.io/QRQTrainer/)
+
+> The app isn't signed with an Apple Developer ID yet. On first launch, open it once, then go to
+> **System Settings → Privacy & Security → Open Anyway**.
+
 ## Features
 
 - **Adaptive speed.** Every correct copy raises the speed by a configurable percentage (4% by default); every miss lowers it.
@@ -94,7 +99,25 @@ the sound's length, never below 0. Every 1000 ms of it costs 3% of the points, a
 Attempts recorded before response timing was added have no response time and weren't penalised for it.
 Scores are only comparable between attempts that use the same callsign source and attempt length (50 is the classic).
 
+## Releasing
+
+Push a version tag (or use **Actions → Release → Run workflow** and enter the version). The **Release** workflow tests,
+builds a universal app, and attaches `QRQ-Trainer.dmg` and `QRQ-Trainer.zip` to a new GitHub Release:
+
+```bash
+git tag v1.2.0 && git push origin v1.2.0
+```
+
+To package locally after `./scripts/build-app.sh`, run `./scripts/package.sh`; the files go in `dist/`.
+
+The download page is `docs/index.html`, served by GitHub Pages from the `main` branch's `/docs` folder. Changes go live
+a minute or so after they are pushed.
+
 ## Not included
 
 There is no connection to the official RufzXP International Toplist; that's a separate service run by the RufzXP authors.
 Export your history as CSV if you want to share results.
+
+## Licence
+
+MIT. See [LICENSE](LICENSE).
