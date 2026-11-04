@@ -7,6 +7,11 @@ just pure speed work.
 
 Built with SwiftUI, Swift Charts and AVAudioEngine. Requires **macOS 14 Sonoma or later** and runs natively on Apple Silicon and Intel.
 
+**[Download the latest release](https://github.com/welly/QRQTrainer/releases/latest/download/QRQ-Trainer.dmg)** · [Website](https://welly.github.io/QRQTrainer/)
+
+> The app isn't signed with an Apple Developer ID yet. On first launch, open it once, then go to
+> **System Settings → Privacy & Security → Open Anyway**.
+
 ## Features
 
 - **Adaptive speed.** Every correct copy raises the speed by a configurable percentage (4% by default); every miss lowers it.
@@ -79,7 +84,22 @@ points = morseUnits(callsign) × CPM / 100 × max(0, 1 − 2 × errors / length)
 `errors` is the edit distance between what was sent and what you typed. A repeated callsign scores 0.
 Scores are only comparable between attempts that use the same callsign source and attempt length (50 is the classic).
 
+## Releasing
+
+Push a version tag. The **Release** workflow tests, builds a universal app, and attaches `QRQ-Trainer.dmg` and
+`QRQ-Trainer.zip` to a new GitHub Release:
+
+```bash
+git tag v1.0.0 && git push origin v1.0.0
+```
+
+The download page in `docs/` is published by the **Pages** workflow (Settings → Pages → Source: GitHub Actions).
+
 ## Not included
 
 There is no connection to the official RufzXP International Toplist; that's a separate service run by the RufzXP authors.
 Export your history as CSV if you want to share results.
+
+## Licence
+
+MIT. See [LICENSE](LICENSE).
