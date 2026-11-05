@@ -178,6 +178,18 @@ final class TrainerModel {
         UserDefaults.standard.set(TrainerMode.needsWork.rawValue, forKey: Pref.mode)
     }
 
+    /// Words for an attempt. With bring-back on, up to a quarter are words missed in earlier Words attempts.
+    private func wordCalls(_ rng: inout SystemRandomNumberGenerator) -> [String] {
+        let list = settings.wordList
+        guard settings.bringBackMisses else { return CallsignList.pick(settings.count, from: list, using: &rng) }
+        let inList = Set(list)
+        let earlier = history.records.filter { $0.source.hasPrefix(TrainerMode.words.title) }.sorted { $0.date < $1.date }
+        let missed = Words.missed(in: earlier.flatMap(\.results)).filter(inList.contains).prefix(settings.count / 4)
+        let rest = list.filter { !missed.contains($0) }
+        let fresh = CallsignList.pick(settings.count - missed.count, from: rest.isEmpty ? list : rest, using: &rng)
+        return (Array(missed) + fresh).shuffled(using: &rng)
+    }
+
     /// Starts an attempt in the current mode.
     func start() {
         guard phase != .running else { return }
@@ -198,7 +210,7 @@ final class TrainerModel {
                         .generate(settings.count, using: &rng)
                 }
             case .words:
-                calls = CallsignList.pick(settings.count, from: settings.wordList, using: &rng)
+                calls = wordCalls(&rng)
             default:
                 calls = CallsignList.pick(settings.count, from: HamCodes.all, using: &rng)
             }
@@ -206,7 +218,8 @@ final class TrainerModel {
         source = settings.sourceName(library: library)
         guard !calls.isEmpty else { return }
 
-        session = TrainingSession(config: settings.config, callsigns: calls)
+        session = TrainingSession(config: settings.config, callsigns: calls,
+                                  bringBackMisses: settings.mode == .words && settings.bringBackMisses)
         previousBest = history.best(source: source)?.score
         lastResult = nil
         finishedRecord = nil

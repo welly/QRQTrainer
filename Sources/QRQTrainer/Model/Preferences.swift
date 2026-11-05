@@ -29,6 +29,8 @@ enum Pref {
     static let wordLength = "wordLength"
     static let wordMin = "wordMinLength"
     static let wordMax = "wordMaxLength"
+    static let wordSet = "wordSet"
+    static let bringBackMisses = "bringBackMissedWords"
     static let composition = "groupComposition"
     static let enabledCharacters = "enabledCharacters"
     static let farnsworth = "farnsworth"
@@ -42,6 +44,7 @@ enum Pref {
         useImported: false, portablePercent: 0.0, prefixedPercent: 0.0, showWPM: false,
         mode: TrainerMode.callsigns.rawValue, variableLength: false, groupLength: 5, groupMin: 1, groupMax: 12,
         wordVariable: true, wordLength: 5, wordMin: 1, wordMax: 12,
+        wordSet: WordSet.top100.rawValue, bringBackMisses: true,
         composition: GroupComposition.mixed.rawValue, enabledCharacters: allCharacters,
         farnsworth: false, farnsworthPercent: 60.0,
     ]
@@ -70,6 +73,9 @@ struct TrainerSettings {
     var minLength: Int
     var maxLength: Int
     var composition: GroupComposition
+    var wordSet: WordSet
+    /// Words mode: missed words come back later in the attempt and in the next one.
+    var bringBackMisses: Bool
     var enabledCharacters: Set<Character>
     /// Effective speed as a fraction of the character speed (1 = no Farnsworth spacing).
     var farnsworth: Double
@@ -99,13 +105,15 @@ struct TrainerSettings {
             minLength: variable ? d.integer(forKey: words ? Pref.wordMin : Pref.groupMin) : fixed,
             maxLength: variable ? d.integer(forKey: words ? Pref.wordMax : Pref.groupMax) : fixed,
             composition: GroupComposition(rawValue: d.string(forKey: Pref.composition) ?? "") ?? .mixed,
+            wordSet: WordSet(rawValue: d.string(forKey: Pref.wordSet) ?? "") ?? .top100,
+            bringBackMisses: d.bool(forKey: Pref.bringBackMisses),
             enabledCharacters: Set(d.string(forKey: Pref.enabledCharacters) ?? Pref.allCharacters),
             farnsworth: d.bool(forKey: Pref.farnsworth) ? min(1, max(0.2, d.double(forKey: Pref.farnsworthPercent) / 100)) : 1
         )
     }
 
     /// The words Words mode can send with the chosen length.
-    var wordList: [String] { Words.list(minLength: minLength, maxLength: maxLength) }
+    var wordList: [String] { Words.list(wordSet, minLength: minLength, maxLength: maxLength) }
 
     /// "5" or "3–7".
     var lengthLabel: String { minLength == maxLength ? "\(minLength)" : "\(minLength)–\(maxLength)" }
@@ -147,7 +155,10 @@ struct TrainerSettings {
             return mode.title
         case .words:
             let all = minLength <= Words.lengths.lowerBound && maxLength >= Words.lengths.upperBound
-            return all ? mode.title : "\(mode.title) · \(lengthLabel)"
+            var parts = [mode.title]
+            if wordSet != .all { parts.append(wordSet.title) }
+            if !all { parts.append(lengthLabel) }
+            return parts.joined(separator: " · ")
         default:
             let g = groupGenerator
             var parts = [mode.title, g.minLength == g.maxLength ? "\(g.minLength)" : "\(g.minLength)–\(g.maxLength)"]

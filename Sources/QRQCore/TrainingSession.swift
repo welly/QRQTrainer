@@ -53,15 +53,24 @@ public struct CallResult: Codable, Equatable, Identifiable, Sendable {
 /// raises the speed, a wrong copy lowers it. Pure state, no audio or timing — the UI drives it.
 public struct TrainingSession: Sendable {
     public let config: TrainingConfig
-    public let callsigns: [String]
+    public private(set) var callsigns: [String]
+    /// When true, a missed item is sent again a few items later (at most twice), in place of a new one.
+    public let bringBackMisses: Bool
+    /// Indices that hold a brought-back item, so they aren't replaced again.
+    private var broughtBack: Set<Int> = []
+    private var returns: [String: Int] = [:]
     public private(set) var index = 0
     public private(set) var currentCPM: Double
     public private(set) var results: [CallResult] = []
     public private(set) var currentWasRepeated = false
 
-    public init(config: TrainingConfig, callsigns: [String]) {
+    /// How many items later a missed item comes back.
+    public static let bringBackGap = 3
+
+    public init(config: TrainingConfig, callsigns: [String], bringBackMisses: Bool = false) {
         self.config = config
         self.callsigns = callsigns
+        self.bringBackMisses = bringBackMisses
         self.currentCPM = min(max(config.startCPM, config.minCPM), config.maxCPM)
     }
 
@@ -97,6 +106,16 @@ public struct TrainingSession: Sendable {
             soundMs: responseTime == nil ? nil : Int((soundDuration * 1000).rounded())
         )
         results.append(result)
+
+        if bringBackMisses, !result.isCorrect, returns[sent, default: 0] < 2 {
+            var target = index + Self.bringBackGap
+            while broughtBack.contains(target) { target += 1 }
+            if target < callsigns.count {
+                callsigns[target] = sent
+                broughtBack.insert(target)
+                returns[sent, default: 0] += 1
+            }
+        }
 
         let step = config.stepPercent / 100
         if !result.isCorrect {

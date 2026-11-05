@@ -14,6 +14,8 @@ struct SourcePrefs: DynamicProperty {
     @AppStorage(Pref.wordLength) var wordLength = 5
     @AppStorage(Pref.wordMin) var wordMin = 1
     @AppStorage(Pref.wordMax) var wordMax = 12
+    @AppStorage(Pref.wordSet) var wordSet = WordSet.top100
+    @AppStorage(Pref.bringBackMisses) var bringBackMisses = true
     @AppStorage(Pref.composition) var composition = GroupComposition.mixed
     @AppStorage(Pref.enabledCharacters) var enabledCharacters = Pref.allCharacters
     @AppStorage(Pref.farnsworth) var farnsworth = false
@@ -173,19 +175,32 @@ struct WhatToCopyCard: View {
 
     @ViewBuilder
     private var wordOptions: some View {
-        HStack(alignment: .top) {
-            lengthControl("Word length", variable: prefs.$wordVariable, fixed: prefs.$wordLength,
-                          min: prefs.$wordMin, max: prefs.$wordMax, range: Words.lengths)
+        let available = TrainerSettings.current().wordList.count
+        HStack(alignment: .top, spacing: 28) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Word set").font(.subheadline).foregroundStyle(.secondary)
+                Picker("Word set", selection: prefs.$wordSet) {
+                    ForEach(WordSet.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .fixedSize()
+                .help("Start with the 100 most common words. A smaller set means you hear each word more often.")
+            }
             Spacer(minLength: 0)
             VStack(alignment: .trailing, spacing: 8) {
                 Text("Words").font(.subheadline).foregroundStyle(.secondary)
-                Text("\(TrainerSettings.current().wordList.count) of \(Words.common.count)")
+                Text("\(available) of \(prefs.wordSet.words.count)")
                     .monospacedDigit()
                     .frame(minHeight: 22)
             }
         }
-        if TrainerSettings.current().wordList.isEmpty {
-            Label("No words of that length. Choose a different length to start.", systemImage: "exclamationmark.triangle.fill")
+        lengthControl("Word length", variable: prefs.$wordVariable, fixed: prefs.$wordLength,
+                      min: prefs.$wordMin, max: prefs.$wordMax, range: Words.lengths)
+        Toggle("Bring back missed words", isOn: prefs.$bringBackMisses)
+            .help("A missed word is sent again \(TrainingSession.bringBackGap) words later, and words you missed last time come back in the next attempt")
+        if available == 0 {
+            Label("No words of that length in this set. Choose a different length or set to start.", systemImage: "exclamationmark.triangle.fill")
                 .font(.callout)
                 .foregroundStyle(.orange)
         }
@@ -206,12 +221,12 @@ struct WhatToCopyCard: View {
                 .fixedSize()
                 if variable.wrappedValue {
                     lengthStepper(lower, range: range.lowerBound...Swift.max(range.lowerBound, Swift.min(upper.wrappedValue, range.upperBound)))
-                    Text("to").foregroundStyle(.secondary)
+                    Text("to").foregroundStyle(.secondary).fixedSize()
                     lengthStepper(upper, range: Swift.min(range.upperBound, Swift.max(lower.wrappedValue, range.lowerBound))...range.upperBound)
                 } else {
                     lengthStepper(fixed, range: range)
                 }
-                Text(title == "Word length" ? "letters" : "characters").foregroundStyle(.secondary)
+                Text(title == "Word length" ? "letters" : "characters").foregroundStyle(.secondary).fixedSize()
             }
         }
     }
@@ -239,7 +254,7 @@ struct WhatToCopyCard: View {
         // Reads every source preference, so it changes whenever one of them does.
         _ = (prefs.mode, prefs.variableLength, prefs.groupLength, prefs.groupMin, prefs.groupMax,
              prefs.composition, prefs.enabledCharacters, prefs.useImported)
-        _ = (prefs.wordVariable, prefs.wordLength, prefs.wordMin, prefs.wordMax, prefs.needsWork)
+        _ = (prefs.wordVariable, prefs.wordLength, prefs.wordMin, prefs.wordMax, prefs.needsWork, prefs.wordSet)
         var rng = SeededRandom(seed: seed)
         let s = TrainerSettings.current()
         if s.usesGroups { return s.groupGenerator.generate(8, using: &rng) }

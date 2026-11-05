@@ -182,6 +182,36 @@ private func close(_ a: Double, _ b: Double, _ tolerance: Double = 1e-9) -> Bool
         #expect(session.results.allSatisfy { $0.cpm == 125 })
     }
 
+    @Test func wordSetsAreMostCommonFirst() {
+        #expect(WordSet.top100.words.count == 100 && WordSet.top200.words.count == 200)
+        #expect(WordSet.top100.words.prefix(3) == ["THE", "OF", "AND"])
+        #expect(Set(WordSet.top100.words).isSubset(of: Set(WordSet.top200.words)))
+        #expect(Set(Words.ranked).count == Words.ranked.count)
+        #expect(Words.list(.top100, minLength: 3, maxLength: 3).allSatisfy { $0.count == 3 && WordSet.top100.words.contains($0) })
+    }
+
+    @Test func missedWordsComeBackInTheAttempt() {
+        let words = ["ONE", "TWO", "SIX", "TEN", "BIG", "CAT", "DOG"]
+        var session = TrainingSession(config: TrainingConfig(count: 7), callsigns: words, bringBackMisses: true)
+        _ = session.submit("ONX")                     // miss ONE
+        #expect(session.callsigns[3] == "ONE")         // back 3 items later
+        _ = session.submit("TWX")                     // miss TWO: slot 4
+        #expect(session.callsigns[4] == "TWO")
+        _ = session.submit("SIX")
+        _ = session.submit("ONX")                     // miss ONE again: comes back a second time
+        #expect(session.callsigns[6] == "ONE")
+        #expect(session.callsigns.count == 7)
+        var plain = TrainingSession(config: TrainingConfig(count: 7), callsigns: words)
+        _ = plain.submit("X")
+        #expect(plain.callsigns == words)
+    }
+
+    @Test func missedWordsAcrossAttempts() {
+        let pairs = [("CAT", "CAT"), ("DOG", "DOX"), ("SUN", "SUX"), ("DOG", "DOG"), ("SKY", "SK")]
+        let results = pairs.enumerated().map { CallResult(index: $0.offset, sent: $0.element.0, received: $0.element.1, cpm: 100, points: 0, repeated: false) }
+        #expect(Words.missed(in: results) == ["SKY", "SUN"])
+    }
+
     @Test func wordsAreSendable() {
         for word in Words.common { #expect(word.allSatisfy { Morse.code(for: $0) != nil }, "\(word)") }
         #expect(Set(Words.common).count == Words.common.count)

@@ -151,54 +151,91 @@ public enum HamCodes {
     ]
 }
 
-/// Common English words, plus a few radio ones, for plain-language practice. Sorted by length.
+/// Common English words, plus a few radio ones, for plain-language practice.
 public enum Words {
-    public static let common: [String] = [
-        "A", "I", "AN", "AS", "AT", "BE", "BY", "DO", "GO", "HE", "IF", "IN", "IS", "IT", "ME", "MY", "NO", "OF",
-        "ON", "OR", "SO", "TO", "UP", "US", "WE", "ALL", "AND", "ANY", "ARE", "BOX", "BOY", "BUT", "CAN", "DAY",
-        "DID", "DOG", "FOR", "FOX", "GET", "HAD", "HAS", "HER", "HIM", "HIS", "HOW", "ITS", "LET", "MAN", "NEW",
-        "NOT", "NOW", "OLD", "ONE", "OUR", "OUT", "PUT", "SAY", "SEE", "SHE", "THE", "TOO", "TWO", "USE", "WAS",
-        "WAX", "WAY", "WHO", "YOU", "ALSO", "AWAY", "BACK", "BAND", "BEEN", "BEST", "BOOK", "BOTH", "CALL", "CAME",
-        "CASE", "CITY", "CODE", "COME", "COPY", "DOOR", "DOWN", "EACH", "EVEN", "FACE", "FACT", "FEEL", "FIND",
-        "FOUR", "FREE", "FROM", "FULL", "GIVE", "GOOD", "HALF", "HAND", "HAVE", "HEAD", "HELP", "HERE", "HIGH",
-        "HOME", "HOPE", "IDEA", "JAZZ", "JUST", "KEEP", "KIND", "KNOW", "LAST", "LATE", "LAZY", "LEFT", "LIFE",
-        "LIKE", "LINE", "LIVE", "LONG", "LOOK", "LOVE", "MADE", "MAKE", "MANY", "MIND", "MORE", "MOST", "MOVE",
-        "MUCH", "MUST", "NAME", "NEAR", "NEED", "NEXT", "ONCE", "ONLY", "OPEN", "OVER", "PART", "PLAN", "PLAY",
-        "QUIZ", "READ", "REAL", "REST", "ROAD", "ROOM", "SAID", "SAME", "SEEM", "SHOW", "SIDE", "SOME", "SUCH",
-        "SURE", "TAKE", "TALK", "TELL", "THAN", "THAT", "THEM", "THEY", "THIS", "TIME", "TOLD", "TREE", "TRUE",
-        "TURN", "UPON", "USED", "VERY", "WAIT", "WALK", "WANT", "WARM", "WEEK", "WELL", "WENT", "WERE", "WHAT",
-        "WHEN", "WILL", "WIND", "WISH", "WITH", "WORD", "WORK", "YEAR", "YOUR", "ZERO", "ZONE", "ABOUT", "AFTER",
-        "AGAIN", "BEING", "BELOW", "BROWN", "CHECK", "CLEAR", "COULD", "EARLY", "EVERY", "EXTRA", "FIRST", "FOUND",
-        "GREAT", "GROUP", "HOUSE", "JUDGE", "JUMPS", "KNIFE", "LARGE", "LATER", "LEARN", "LIGHT", "MIGHT", "MONEY",
-        "MORSE", "NEVER", "NIGHT", "NOISE", "OFTEN", "ORDER", "OTHER", "PAPER", "PLACE", "POINT", "POWER", "QUICK",
-        "QUITE", "RADIO", "RIGHT", "SHALL", "SINCE", "SMALL", "SOUND", "SPEAK", "SPEED", "STAND", "START", "STATE",
-        "STILL", "STORY", "STUDY", "THEIR", "THERE", "THESE", "THING", "THINK", "THOSE", "THREE", "TODAY", "UNDER",
-        "UNTIL", "VOICE", "WATER", "WHERE", "WHICH", "WHILE", "WHITE", "WHOLE", "WORLD", "WOULD", "WRITE", "YOUNG",
-        "ALWAYS", "ANSWER", "AROUND", "BEFORE", "BETTER", "CHANGE", "FAMILY", "FRIEND", "GROUND", "LETTER", "LISTEN",
-        "LITTLE", "MOMENT", "MOTHER", "NUMBER", "OXYGEN", "PEOPLE", "PERSON", "SCHOOL", "SHOULD", "SIGNAL", "SIMPLE",
+    /// Every word, most common first: the 100 most common English words, then the next 100, then the rest.
+    public static let ranked: [String] = [
+        "THE", "OF", "AND", "A", "TO", "IN", "IS", "YOU", "THAT", "IT", "HE", "WAS", "FOR", "ON", "ARE", "AS", "WITH",
+        "HIS", "THEY", "I", "AT", "BE", "THIS", "HAVE", "FROM", "OR", "ONE", "HAD", "BY", "WORD", "BUT", "NOT",
+        "WHAT", "ALL", "WERE", "WE", "WHEN", "YOUR", "CAN", "SAID", "THERE", "USE", "AN", "EACH", "WHICH", "SHE",
+        "DO", "HOW", "THEIR", "IF", "WILL", "UP", "OTHER", "ABOUT", "OUT", "MANY", "THEN", "THEM", "THESE", "SO",
+        "SOME", "HER", "WOULD", "MAKE", "LIKE", "HIM", "INTO", "TIME", "HAS", "LOOK", "TWO", "MORE", "WRITE", "GO",
+        "SEE", "NUMBER", "NO", "WAY", "COULD", "PEOPLE", "MY", "THAN", "FIRST", "WATER", "BEEN", "CALL", "WHO", "OIL",
+        "ITS", "NOW", "FIND", "LONG", "DOWN", "DAY", "DID", "GET", "COME", "MADE", "MAY", "PART", "OVER", "NEW",
+        "SOUND", "TAKE", "ONLY", "LITTLE", "WORK", "KNOW", "PLACE", "YEAR", "LIVE", "ME", "BACK", "GIVE", "MOST",
+        "VERY", "AFTER", "THING", "OUR", "JUST", "NAME", "GOOD", "SENTENCE", "MAN", "THINK", "SAY", "GREAT", "WHERE",
+        "HELP", "THROUGH", "MUCH", "BEFORE", "LINE", "RIGHT", "TOO", "MEAN", "OLD", "ANY", "SAME", "TELL", "BOY",
+        "FOLLOW", "CAME", "WANT", "SHOW", "ALSO", "AROUND", "FORM", "THREE", "SMALL", "SET", "PUT", "END", "DOES",
+        "ANOTHER", "WELL", "LARGE", "MUST", "BIG", "EVEN", "SUCH", "BECAUSE", "TURN", "HERE", "WHY", "ASK", "WENT",
+        "MEN", "READ", "NEED", "LAND", "DIFFERENT", "HOME", "US", "MOVE", "TRY", "KIND", "HAND", "PICTURE", "AGAIN",
+        "CHANGE", "OFF", "PLAY", "SPELL", "AIR", "AWAY", "ANIMAL", "HOUSE", "POINT", "PAGE", "LETTER", "MOTHER",
+        "ANSWER", "FOUND", "STUDY", "STILL", "LEARN", "SHOULD", "WORLD", "HIGH", "BOX", "DOG", "FOX", "LET", "WAX",
+        "BAND", "BEST", "BOOK", "BOTH", "CASE", "CITY", "CODE", "COPY", "DOOR", "FACE", "FACT", "FEEL", "FOUR",
+        "FREE", "FULL", "HALF", "HEAD", "HOPE", "IDEA", "JAZZ", "KEEP", "LAST", "LATE", "LAZY", "LEFT", "LIFE",
+        "LOVE", "MIND", "NEAR", "NEXT", "ONCE", "OPEN", "PLAN", "QUIZ", "REAL", "REST", "ROAD", "ROOM", "SEEM",
+        "SIDE", "SURE", "TALK", "TOLD", "TREE", "TRUE", "UPON", "USED", "WAIT", "WALK", "WARM", "WEEK", "WIND",
+        "WISH", "ZERO", "ZONE", "BEING", "BELOW", "BROWN", "CHECK", "CLEAR", "EARLY", "EVERY", "EXTRA", "GROUP",
+        "JUDGE", "JUMPS", "KNIFE", "LATER", "LIGHT", "MIGHT", "MONEY", "MORSE", "NEVER", "NIGHT", "NOISE", "OFTEN",
+        "ORDER", "PAPER", "POWER", "QUICK", "QUITE", "RADIO", "SHALL", "SINCE", "SPEAK", "SPEED", "STAND", "START",
+        "STATE", "STORY", "THOSE", "TODAY", "UNDER", "UNTIL", "VOICE", "WHILE", "WHITE", "WHOLE", "YOUNG", "ALWAYS",
+        "BETTER", "FAMILY", "FRIEND", "GROUND", "LISTEN", "MOMENT", "OXYGEN", "PERSON", "SCHOOL", "SIGNAL", "SIMPLE",
         "SUMMER", "SYSTEM", "THOUGH", "TOWARD", "TRAVEL", "VALLEY", "WINTER", "YELLOW", "ALREADY", "AMATEUR",
-        "ANOTHER", "ANTENNA", "BECAUSE", "BELIEVE", "BETWEEN", "BROUGHT", "CERTAIN", "COMPANY", "CONTEST", "COUNTRY",
-        "EVENING", "EXAMPLE", "FREEDOM", "GENERAL", "HISTORY", "HOWEVER", "HUNDRED", "JOURNEY", "KITCHEN", "MACHINE",
-        "MESSAGE", "MINUTES", "MORNING", "NOTHING", "OUTSIDE", "PERHAPS", "PICTURE", "PRESENT", "PROBLEM", "PROGRAM",
-        "RECEIVE", "SEVERAL", "SPECIAL", "STATION", "STRANGE", "THOUGHT", "THROUGH", "TONIGHT", "VILLAGE", "WEATHER",
-        "WEEKEND", "WITHOUT", "WRITING", "BIRTHDAY", "BUILDING", "CHILDREN", "EVERYONE", "EXERCISE", "HOSPITAL",
-        "LANGUAGE", "MOUNTAIN", "OPERATOR", "PRACTICE", "QUESTION", "REMEMBER", "STRENGTH", "TOGETHER", "TRAINING",
-        "UMBRELLA", "YOURSELF", "BEAUTIFUL", "BEGINNING", "DIFFERENT", "EQUIPMENT", "FREQUENCY", "IMPORTANT",
-        "KNOWLEDGE", "SOMETHING", "TELEPHONE", "WONDERFUL", "YESTERDAY", "ACCEPTABLE", "BACKGROUND", "CONDITIONS",
-        "CONNECTION", "DIFFERENCE", "DIRECTIONS", "EVERYTHING", "EXPERIENCE", "GOVERNMENT", "IMPORTANCE",
-        "POPULATION", "REMARKABLE", "THEMSELVES", "UNDERSTAND", "COMPETITION", "DEFINITIONS", "ELECTRICITY",
-        "ENVIRONMENT", "EXPERIMENTS", "IMMEDIATELY", "INDEPENDENT", "INFORMATION", "INSTRUMENTS", "OPPORTUNITY",
-        "TEMPERATURE", "TRANSMITTER", "ACKNOWLEDGED", "APPRECIATION", "ARCHITECTURE", "ASSOCIATIONS", "CONVERSATION",
-        "DISTRIBUTION", "ENTERTAINING", "INSTRUCTIONS", "INTRODUCTION", "OBSERVATIONS", "PARTICULARLY",
-        "PROFESSIONAL", "RELATIONSHIP",
+        "ANTENNA", "BELIEVE", "BETWEEN", "BROUGHT", "CERTAIN", "COMPANY", "CONTEST", "COUNTRY", "EVENING", "EXAMPLE",
+        "FREEDOM", "GENERAL", "HISTORY", "HOWEVER", "HUNDRED", "JOURNEY", "KITCHEN", "MACHINE", "MESSAGE", "MINUTES",
+        "MORNING", "NOTHING", "OUTSIDE", "PERHAPS", "PRESENT", "PROBLEM", "PROGRAM", "RECEIVE", "SEVERAL", "SPECIAL",
+        "STATION", "STRANGE", "THOUGHT", "TONIGHT", "VILLAGE", "WEATHER", "WEEKEND", "WITHOUT", "WRITING", "BIRTHDAY",
+        "BUILDING", "CHILDREN", "EVERYONE", "EXERCISE", "HOSPITAL", "LANGUAGE", "MOUNTAIN", "OPERATOR", "PRACTICE",
+        "QUESTION", "REMEMBER", "STRENGTH", "TOGETHER", "TRAINING", "UMBRELLA", "YOURSELF", "BEAUTIFUL", "BEGINNING",
+        "EQUIPMENT", "FREQUENCY", "IMPORTANT", "KNOWLEDGE", "SOMETHING", "TELEPHONE", "WONDERFUL", "YESTERDAY",
+        "ACCEPTABLE", "BACKGROUND", "CONDITIONS", "CONNECTION", "DIFFERENCE", "DIRECTIONS", "EVERYTHING",
+        "EXPERIENCE", "GOVERNMENT", "IMPORTANCE", "POPULATION", "REMARKABLE", "THEMSELVES", "UNDERSTAND",
+        "COMPETITION", "DEFINITIONS", "ELECTRICITY", "ENVIRONMENT", "EXPERIMENTS", "IMMEDIATELY", "INDEPENDENT",
+        "INFORMATION", "INSTRUMENTS", "OPPORTUNITY", "TEMPERATURE", "TRANSMITTER", "ACKNOWLEDGED", "APPRECIATION",
+        "ARCHITECTURE", "ASSOCIATIONS", "CONVERSATION", "DISTRIBUTION", "ENTERTAINING", "INSTRUCTIONS",
+        "INTRODUCTION", "OBSERVATIONS", "PARTICULARLY", "PROFESSIONAL", "RELATIONSHIP",
     ]
+
+    /// Every word, shortest first.
+    public static let common: [String] = ranked.sorted { ($0.count, $0) < ($1.count, $1) }
 
     /// Word lengths that can be chosen: A and I up to 12-letter words.
     public static let lengths: ClosedRange<Int> = 1...12
 
-    /// The words whose length is within `minLength...maxLength`.
-    public static func list(minLength: Int, maxLength: Int) -> [String] {
+    /// The words in `set` whose length is within `minLength...maxLength`, most common first.
+    public static func list(_ set: WordSet = .all, minLength: Int, maxLength: Int) -> [String] {
         let range = max(1, min(minLength, maxLength))...max(minLength, maxLength)
-        return common.filter { range.contains($0.count) }
+        return set.words.filter { range.contains($0.count) }
+    }
+
+    /// Words whose most recent copy in `results` (oldest first) was wrong, most recently missed first.
+    public static func missed<S: Sequence>(in results: S) -> [String] where S.Element == CallResult {
+        var last: [String: (index: Int, correct: Bool)] = [:]
+        for (i, r) in results.enumerated() where !r.repeated || !r.isCorrect {
+            last[r.sent] = (i, r.isCorrect)
+        }
+        return last.filter { !$0.value.correct }.sorted { $0.value.index > $1.value.index }.map(\.key)
+    }
+}
+
+/// How many of the most common words Words mode draws from. A smaller set means hearing each word more often.
+public enum WordSet: String, CaseIterable, Codable, Sendable, Identifiable {
+    case top100, top200, all
+
+    public var id: String { rawValue }
+
+    public var title: String {
+        switch self {
+        case .top100: "Top 100"
+        case .top200: "Top 200"
+        case .all: "All"
+        }
+    }
+
+    public var words: [String] {
+        switch self {
+        case .top100: Array(Words.ranked.prefix(100))
+        case .top200: Array(Words.ranked.prefix(200))
+        case .all: Words.ranked
+        }
     }
 }

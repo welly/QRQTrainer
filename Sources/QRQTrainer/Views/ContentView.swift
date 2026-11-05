@@ -34,7 +34,6 @@ struct ContentView: View {
                     .badge(item == .history ? history.records.count : 0)
             }
             .navigationSplitViewColumnWidth(min: 170, ideal: 190, max: 240)
-            .safeAreaInset(edge: .bottom) { SidebarFooter() }
         } detail: {
             switch selection ?? .train {
             case .train: TrainView()
@@ -61,25 +60,5 @@ struct ContentView: View {
         } message: {
             Text(history.errorMessage ?? "")
         }
-    }
-}
-
-private struct SidebarFooter: View {
-    @Environment(TrainerModel.self) private var trainer
-    private var prefs = SourcePrefs()
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Copying").font(.caption).foregroundStyle(.secondary)
-            Label(trainer.sourceName(), systemImage: prefs.symbol)
-                .font(.callout)
-                .lineLimit(2)
-            SettingsLink {
-                Text("Change…").font(.caption)
-            }
-            .buttonStyle(.link)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
     }
 }
