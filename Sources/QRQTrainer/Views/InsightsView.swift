@@ -66,7 +66,7 @@ struct InsightsView: View {
                                     if rankedCount == 0 {
                                         notEnoughData
                                     } else if strongest.isEmpty {
-                                        Text("No characters with ⚡ yet. A character earns it when you copy it correctly at least 90% of the time and press Return within 800 ms of the sound ending at least 80% of the time.")
+                                        Text("No characters with ⚡ yet. A character earns it when you copy it correctly at least 90% of the time and start typing within 1 second of the sound ending at least 80% of the time.")
                                             .font(.callout)
                                             .foregroundStyle(.secondary)
                                             .fixedSize(horizontal: false, vertical: true)
@@ -113,7 +113,7 @@ struct InsightsView: View {
                             }
                         }
 
-                        Text("Based on \(analysis.callsignCount.formatted()) answered items from \(records.count) attempt\(records.count == 1 ? "" : "s"). Characters need \(minSamples) copies before they're ranked. A copy is instant when it's correct and you press Return within 800 ms of the sound ending, plus 200 ms for each further character to type. Characters copied correctly 90% of the time and instantly 80% get ⚡.")
+                        Text("Based on \(analysis.callsignCount.formatted()) answered items from \(records.count) attempt\(records.count == 1 ? "" : "s"). Characters need \(minSamples) copies before they're ranked. A copy is instant when it's correct and you type the first key within 1 second of the sound ending. Typing the rest and pressing Return don't count. (Attempts from before v1.5 only timed Return, so for those it's 1.5 seconds plus 0.2 seconds for each further character.) Characters copied correctly 90% of the time and instantly 80% get ⚡.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }

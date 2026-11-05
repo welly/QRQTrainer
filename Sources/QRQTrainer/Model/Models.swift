@@ -135,7 +135,13 @@ final class TrainerModel {
     private(set) var awaitingAnswer = false
     private(set) var finishedRecord: AttemptRecord?
     private(set) var previousBest: Int?
-    var entry = ""
+    var entry = "" {
+        didSet {
+            // The first key typed after an item starts: how quickly it was recognised.
+            if firstKeyAt == nil, awaitingAnswer, !entry.isEmpty { firstKeyAt = .now }
+        }
+    }
+    @ObservationIgnored private var firstKeyAt: ContinuousClock.Instant?
 
     let history: HistoryModel
     let library: CallsignLibrary
@@ -230,9 +236,11 @@ final class TrainerModel {
 
     func submit() {
         guard phase == .running, awaitingAnswer, var s = session else { return }
+        func seconds(_ d: Duration) -> Double { Double(d.components.seconds) + Double(d.components.attoseconds) / 1e18 }
         let elapsed = soundStarts.map { ContinuousClock.now - $0 } ?? .zero
-        let seconds = Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18
-        let result = s.submit(entry, responseTime: seconds, soundDuration: soundDuration)
+        var firstKey: Double?
+        if let soundStarts, let firstKeyAt { firstKey = seconds(firstKeyAt - soundStarts) }
+        let result = s.submit(entry, responseTime: seconds(elapsed), soundDuration: soundDuration, firstKeyTime: firstKey)
         session = s
         lastResult = result
         entry = ""
@@ -285,6 +293,7 @@ final class TrainerModel {
         isPlaying = true
         let start = player.play(samples) { [weak self] in self?.isPlaying = false }
         soundStarts = start + .seconds(leadIn)
+        firstKeyAt = entry.isEmpty ? nil : firstKeyAt
         soundDuration = MorseSynth.duration(of: call, cpm: s.currentCPM, farnsworth: settings.farnsworth)
     }
 

@@ -30,9 +30,11 @@ public struct CallResult: Codable, Equatable, Identifiable, Sendable {
     public var responseMs: Int?
     /// Milliseconds from the start of the first tone to the end of the last one.
     public var soundMs: Int?
+    /// Milliseconds from the start of the first tone to the first key typed. Nil in older attempts.
+    public var firstKeyMs: Int?
 
     public init(index: Int, sent: String, received: String, cpm: Double, points: Int, repeated: Bool,
-                responseMs: Int? = nil, soundMs: Int? = nil) {
+                responseMs: Int? = nil, soundMs: Int? = nil, firstKeyMs: Int? = nil) {
         self.index = index
         self.sent = sent
         self.received = received
@@ -41,6 +43,7 @@ public struct CallResult: Codable, Equatable, Identifiable, Sendable {
         self.repeated = repeated
         self.responseMs = responseMs
         self.soundMs = soundMs
+        self.firstKeyMs = firstKeyMs
     }
 
     /// What a perfect, instant copy would have earned.
@@ -90,7 +93,9 @@ public struct TrainingSession: Sendable {
     /// and `soundDuration` how long the item sounded. Only the time after the sound counts against the score, so long
     /// or slow items aren't penalised for their length. A nil `responseTime` leaves time out of the score.
     @discardableResult
-    public mutating func submit(_ answer: String, responseTime: Double? = nil, soundDuration: Double = 0) -> CallResult? {
+    /// `firstKeyTime` is the seconds from the start of the first tone to the first key typed, for instant recognition.
+    public mutating func submit(_ answer: String, responseTime: Double? = nil, soundDuration: Double = 0,
+                                firstKeyTime: Double? = nil) -> CallResult? {
         let responseTime = responseTime.map { max(0, $0) }
         guard let sent = currentCallsign else { return nil }
         let received = answer.trimmingCharacters(in: .whitespaces).uppercased()
@@ -103,7 +108,8 @@ public struct TrainingSession: Sendable {
                                    responseTime: responseTime.map { max(0, $0 - soundDuration) }),
             repeated: currentWasRepeated,
             responseMs: responseTime.map { Int(($0 * 1000).rounded()) },
-            soundMs: responseTime == nil ? nil : Int((soundDuration * 1000).rounded())
+            soundMs: responseTime == nil ? nil : Int((soundDuration * 1000).rounded()),
+            firstKeyMs: firstKeyTime.map { Int((max(0, $0) * 1000).rounded()) }
         )
         results.append(result)
 

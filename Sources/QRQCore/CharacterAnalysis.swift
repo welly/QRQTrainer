@@ -10,7 +10,7 @@ public struct CharacterStat: Identifiable, Equatable, Sendable {
     public internal(set) var timed: Int = 0
     /// Correct copies answered within the instant-recognition allowance.
     public internal(set) var instant: Int = 0
-    /// Sum of the time from the end of the sound to Return, over timed correct copies.
+    /// Sum of the time from the end of the sound to the first key (Return in older attempts), over timed correct copies.
     public internal(set) var thinkMsTotal: Int = 0
     public internal(set) var thinkCount: Int = 0
 
@@ -24,7 +24,7 @@ public struct CharacterStat: Identifiable, Equatable, Sendable {
     public var accuracy: Double? { sent == 0 ? nil : Double(correct) / Double(sent) }
     /// Share of timed copies that were correct and instant. Nil when none were timed.
     public var instantRate: Double? { timed == 0 ? nil : Double(instant) / Double(timed) }
-    /// Average time from the end of the sound to Return when copied correctly.
+    /// Average time from the end of the sound to the first key (Return in older attempts) when copied correctly.
     public var averageThinkMs: Int? { thinkCount == 0 ? nil : thinkMsTotal / thinkCount }
     /// Instant character recognition: copied correctly at least 90% of the time and instantly at least 80%.
     public var isInstant: Bool { (accuracy ?? 0) >= 0.9 && (instantRate ?? 0) >= 0.8 }
@@ -45,9 +45,26 @@ public struct Confusion: Identifiable, Equatable, Sendable {
 public struct CharacterAnalysis: Sendable {
     public static let alphabet: [Character] = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/")
 
-    /// How long after the sound ends an answer still counts as instant: 800 ms, plus 200 ms of typing time for
-    /// each further character in the item.
-    public static func instantAllowanceMs(length: Int) -> Int { 800 + 200 * max(0, length - 1) }
+    /// How long after the sound ends the first key can be typed and still count as instant. Typing the rest and
+    /// pressing Return don't count: they're about fingers, not recognition.
+    public static let instantFirstKeyMs = 1000
+
+    /// For older attempts that only timed Return: 1500 ms after the sound, plus 200 ms of typing for each
+    /// further character in the item.
+    public static func instantAllowanceMs(length: Int) -> Int { 1500 + 200 * max(0, length - 1) }
+
+    /// Milliseconds from the end of the sound to the first key (or, in older attempts, to Return), and whether
+    /// that was quick enough to be instant. Nil when the item wasn't timed.
+    public static func recognition(of result: CallResult) -> (thinkMs: Int, quick: Bool)? {
+        guard let sound = result.soundMs else { return nil }
+        if let key = result.firstKeyMs {
+            let ms = max(0, key - sound)
+            return (ms, ms <= instantFirstKeyMs)
+        }
+        guard let response = result.responseMs else { return nil }
+        let ms = max(0, response - sound)
+        return (ms, ms <= instantAllowanceMs(length: result.sent.count))
+    }
 
     public private(set) var stats: [Character: CharacterStat] = [:]
     public private(set) var confusions: [Confusion] = []
@@ -58,9 +75,10 @@ public struct CharacterAnalysis: Sendable {
         var confusionCounts: [String: (Character, Character?, Int)] = [:]
         for result in results where !result.received.isEmpty {
             callsignCount += 1
-            // Time after the sound, for items whose response and sound length were both recorded.
-            let thinkMs = result.responseMs.flatMap { r in result.soundMs.map { max(0, r - $0) } }
-            let quick = thinkMs.map { $0 <= Self.instantAllowanceMs(length: result.sent.count) } ?? false
+            // Time from the end of the sound to the first key (or Return in older attempts), when it was recorded.
+            let timing = Self.recognition(of: result)
+            let thinkMs = timing?.thinkMs
+            let quick = timing?.quick ?? false
             for item in Scoring.align(sent: result.sent, received: result.received) {
                 if case .extra = item { continue }  // an inserted character isn't a miss of any sent character
                 let sentChar: Character

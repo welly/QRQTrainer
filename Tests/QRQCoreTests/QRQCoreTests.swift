@@ -333,9 +333,9 @@ private func close(_ a: Double, _ b: Double, _ tolerance: Double = 1e-9) -> Bool
     }
 
     @Test func instantNeedsCorrectAndQuick() {
-        // Single characters: allowance 800 ms after the sound.
+        // Older attempts (Return only): allowance 1500 ms after the sound for one character.
         var results: [CallResult] = []
-        for _ in 0..<9 { results.append(result("E", "E", responseMs: 900, soundMs: 300)) }   // 600 ms after: instant
+        for _ in 0..<9 { results.append(result("E", "E", responseMs: 1500, soundMs: 300)) }  // 1200 ms after: instant
         results.append(result("E", "E", responseMs: 2300, soundMs: 300))                       // 2000 ms after: slow
         for _ in 0..<5 { results.append(result("T", "T", responseMs: 2300, soundMs: 300)) }   // always slow
         let a = CharacterAnalysis(results: results)
@@ -348,8 +348,23 @@ private func close(_ a: Double, _ b: Double, _ tolerance: Double = 1e-9) -> Bool
     }
 
     @Test func allowanceGrowsWithLength() {
-        #expect(CharacterAnalysis.instantAllowanceMs(length: 1) == 800)
-        #expect(CharacterAnalysis.instantAllowanceMs(length: 6) == 1800)
+        #expect(CharacterAnalysis.instantAllowanceMs(length: 1) == 1500)
+        #expect(CharacterAnalysis.instantAllowanceMs(length: 6) == 2500)
+    }
+
+    @Test func firstKeyDecidesInstant() {
+        // Slow to press Return, but the first key came 700 ms after the sound: instant.
+        let quick = CallResult(index: 0, sent: "QRQ", received: "QRQ", cpm: 100, points: 0, repeated: false,
+                               responseMs: 4000, soundMs: 1000, firstKeyMs: 1700)
+        #expect(CharacterAnalysis.recognition(of: quick)! == (700, true))
+        // First key 1200 ms after the sound: not instant, however fast Return was.
+        let slow = CallResult(index: 0, sent: "E", received: "E", cpm: 100, points: 0, repeated: false,
+                              responseMs: 1300, soundMs: 100, firstKeyMs: 1300)
+        #expect(CharacterAnalysis.recognition(of: slow)!.quick == false)
+        // Typing before the sound ended counts as 0 ms.
+        let early = CallResult(index: 0, sent: "E", received: "E", cpm: 100, points: 0, repeated: false,
+                               responseMs: 500, soundMs: 400, firstKeyMs: 300)
+        #expect(CharacterAnalysis.recognition(of: early)!.thinkMs == 0)
     }
 
     @Test func untimedResultsFallBackToAccuracy() {
