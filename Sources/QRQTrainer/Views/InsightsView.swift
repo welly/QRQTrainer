@@ -27,6 +27,7 @@ struct InsightsView: View {
         let analysis = CharacterAnalysis(results: results)
         let weakest = analysis.weakest(5, minSamples: minSamples)
         let strongest = analysis.strongest(5, minSamples: minSamples)
+        let rankedCount = analysis.stats.values.filter { $0.sent >= minSamples }.count
 
         Group {
             if history.records.isEmpty {
@@ -46,12 +47,12 @@ struct InsightsView: View {
                                         Spacer()
                                         if !weakest.isEmpty {
                                             Button("Practise these", systemImage: "play.fill") {
-                                                trainer.start(focus: Set(weakest.map(\.character)))
+                                                trainer.practise(Set(weakest.map(\.character)))
                                                 onPractise()
                                             }
                                             .buttonStyle(.borderedProminent)
                                             .disabled(trainer.phase == .running)
-                                            .help("Start an attempt in the current mode that drills these characters")
+                                            .help("Set up Train with groups of only these characters. Go back to your usual mode from the Train screen.")
                                         }
                                     }
                                     if weakest.isEmpty {
@@ -69,8 +70,14 @@ struct InsightsView: View {
                                         .font(.headline).foregroundStyle(.green)
                                         .frame(minHeight: 28)
                                         .help("Characters you copy correctly and answer quickly, without having to work them out")
-                                    if strongest.isEmpty {
+                                    if rankedCount == 0 {
                                         notEnoughData
+                                    } else if strongest.isEmpty {
+                                        Text("No characters with ⚡ yet. A character earns it when you copy it correctly at least 90% of the time and press Return within 800 ms of the sound ending at least 80% of the time.")
+                                            .font(.callout)
+                                            .foregroundStyle(.secondary)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                            .frame(maxWidth: .infinity, minHeight: 80, alignment: .leading)
                                     } else {
                                         ForEach(strongest) { stat in CharacterRow(stat: stat, mixUp: nil) }
                                     }
@@ -204,13 +211,18 @@ private struct CharacterRow: View {
     let stat: CharacterStat
     let mixUp: Confusion?
 
+    /// The headline figure: how often it was copied instantly, or plain accuracy for untimed (older) attempts.
+    private var value: Double { stat.instantRate ?? stat.accuracy ?? 0 }
+    private var valueLabel: String {
+        value.formatted(.percent.precision(.fractionLength(0))) + (stat.instantRate != nil ? " instant" : " correct")
+    }
+
     var body: some View {
-        let accuracy = stat.accuracy ?? 0
         HStack(spacing: 12) {
             Text(String(stat.character))
                 .font(.system(.title2, design: .monospaced, weight: .bold))
                 .frame(width: 40, height: 40)
-                .background(AccuracyColor.color(stat.accuracy).opacity(0.22), in: RoundedRectangle(cornerRadius: 9))
+                .background(AccuracyColor.color(value).opacity(0.22), in: RoundedRectangle(cornerRadius: 9))
                 .overlay(alignment: .topTrailing) {
                     if stat.isInstant {
                         Image(systemName: "bolt.fill").font(.caption2).foregroundStyle(.green).offset(x: 4, y: -4)
@@ -220,19 +232,20 @@ private struct CharacterRow: View {
                 HStack {
                     MorseGlyph(character: stat.character)
                     Spacer()
-                    Text(accuracy.formatted(.percent.precision(.fractionLength(0))))
+                    Text(valueLabel)
                         .font(.callout.weight(.semibold)).monospacedDigit()
                 }
-                ProgressView(value: accuracy)
-                    .tint(AccuracyColor.color(stat.accuracy))
+                ProgressView(value: value)
+                    .tint(AccuracyColor.color(value))
                 Text(detail).font(.caption).foregroundStyle(.secondary)
             }
         }
     }
 
     private var detail: String {
-        var text = "\(stat.correct) of \(stat.sent) correct"
-        if stat.timed > 0 { text += " · \(stat.instant) instant" }
+        let accuracy = (stat.accuracy ?? 0).formatted(.percent.precision(.fractionLength(0)))
+        var text = "\(stat.instant) of \(stat.timed) instant · \(accuracy) correct"
+        if stat.timed == 0 { text = "\(stat.correct) of \(stat.sent) correct" }
         if let ms = stat.averageThinkMs { text += " · \(ms) ms after the sound" }
         if let m = mixUp {
             text += m.typed.map { " · often typed as \($0)" } ?? " · often left out"

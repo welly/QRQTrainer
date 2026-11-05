@@ -15,7 +15,7 @@ public enum CharacterClass: String, CaseIterable, Codable, Sendable {
     public var title: String {
         switch self {
         case .letters: "Letters"
-        case .figures: "Figures"
+        case .figures: "Numbers"
         case .symbols: "Symbols"
         }
     }
@@ -28,6 +28,7 @@ public enum CharacterClass: String, CaseIterable, Codable, Sendable {
 public enum TrainerMode: String, CaseIterable, Codable, Sendable, Identifiable {
     case callsigns
     case hamCodes
+    case words
     case letters
     case figures
     case symbols
@@ -42,12 +43,13 @@ public enum TrainerMode: String, CaseIterable, Codable, Sendable, Identifiable {
         switch self {
         case .callsigns: "Callsigns"
         case .hamCodes: "Ham codes"
+        case .words: "Words"
         case .letters: "Letters"
-        case .figures: "Figures"
+        case .figures: "Numbers"
         case .symbols: "Symbols"
-        case .lettersFigures: "Letters & figures"
+        case .lettersFigures: "Letters & numbers"
         case .lettersSymbols: "Letters & symbols"
-        case .figuresSymbols: "Figures & symbols"
+        case .figuresSymbols: "Numbers & symbols"
         case .all: "All characters"
         }
     }
@@ -55,7 +57,7 @@ public enum TrainerMode: String, CaseIterable, Codable, Sendable, Identifiable {
     /// Character classes used to build random groups. Empty for word-based modes.
     public var classes: [CharacterClass] {
         switch self {
-        case .callsigns, .hamCodes: []
+        case .callsigns, .hamCodes, .words: []
         case .letters: [.letters]
         case .figures: [.figures]
         case .symbols: [.symbols]
@@ -66,7 +68,7 @@ public enum TrainerMode: String, CaseIterable, Codable, Sendable, Identifiable {
         }
     }
 
-    /// True for modes made of random character groups (as opposed to callsigns or ham codes).
+    /// True for modes made of random character groups (as opposed to callsigns, ham codes or words).
     public var usesGroups: Bool { !classes.isEmpty }
 
     /// What one item of an attempt is called in the interface.
@@ -74,6 +76,7 @@ public enum TrainerMode: String, CaseIterable, Codable, Sendable, Identifiable {
         switch self {
         case .callsigns: "callsign"
         case .hamCodes: "code"
+        case .words: "word"
         default: "group"
         }
     }
@@ -83,7 +86,7 @@ public enum TrainerMode: String, CaseIterable, Codable, Sendable, Identifiable {
 public enum GroupComposition: String, CaseIterable, Codable, Sendable {
     /// Every group may contain characters from all of the mode's classes.
     case mixed
-    /// Each group uses a single class (a group of letters, then a group of figures, …).
+    /// Each group uses a single class (a group of letters, then a group of numbers, …).
     case separated
 }
 
@@ -143,4 +146,56 @@ public enum HamCodes {
         "OM", "OP", "PSE", "PWR", "RIG", "RPT", "SIG", "SRI", "TEST", "UR", "VY", "WKD", "WX", "XYL", "YL",
         "TEMP", "BCNU", "OK", "ENUF", "FREQ", "LID", "SKED", "TX", "RX", "WPM", "HVY", "GUD", "OB",
     ]
+}
+
+/// Common English words, plus a few radio ones, for plain-language practice. Sorted by length.
+public enum Words {
+    public static let common: [String] = [
+        "A", "I", "AN", "AS", "AT", "BE", "BY", "DO", "GO", "HE", "IF", "IN", "IS", "IT", "ME", "MY", "NO", "OF",
+        "ON", "OR", "SO", "TO", "UP", "US", "WE", "ALL", "AND", "ANY", "ARE", "BOX", "BOY", "BUT", "CAN", "DAY",
+        "DID", "DOG", "FOR", "FOX", "GET", "HAD", "HAS", "HER", "HIM", "HIS", "HOW", "ITS", "LET", "MAN", "NEW",
+        "NOT", "NOW", "OLD", "ONE", "OUR", "OUT", "PUT", "SAY", "SEE", "SHE", "THE", "TOO", "TWO", "USE", "WAS",
+        "WAX", "WAY", "WHO", "YOU", "ALSO", "AWAY", "BACK", "BAND", "BEEN", "BEST", "BOOK", "BOTH", "CALL", "CAME",
+        "CASE", "CITY", "CODE", "COME", "COPY", "DOOR", "DOWN", "EACH", "EVEN", "FACE", "FACT", "FEEL", "FIND",
+        "FOUR", "FREE", "FROM", "FULL", "GIVE", "GOOD", "HALF", "HAND", "HAVE", "HEAD", "HELP", "HERE", "HIGH",
+        "HOME", "HOPE", "IDEA", "JAZZ", "JUST", "KEEP", "KIND", "KNOW", "LAST", "LATE", "LAZY", "LEFT", "LIFE",
+        "LIKE", "LINE", "LIVE", "LONG", "LOOK", "LOVE", "MADE", "MAKE", "MANY", "MIND", "MORE", "MOST", "MOVE",
+        "MUCH", "MUST", "NAME", "NEAR", "NEED", "NEXT", "ONCE", "ONLY", "OPEN", "OVER", "PART", "PLAN", "PLAY",
+        "QUIZ", "READ", "REAL", "REST", "ROAD", "ROOM", "SAID", "SAME", "SEEM", "SHOW", "SIDE", "SOME", "SUCH",
+        "SURE", "TAKE", "TALK", "TELL", "THAN", "THAT", "THEM", "THEY", "THIS", "TIME", "TOLD", "TREE", "TRUE",
+        "TURN", "UPON", "USED", "VERY", "WAIT", "WALK", "WANT", "WARM", "WEEK", "WELL", "WENT", "WERE", "WHAT",
+        "WHEN", "WILL", "WIND", "WISH", "WITH", "WORD", "WORK", "YEAR", "YOUR", "ZERO", "ZONE", "ABOUT", "AFTER",
+        "AGAIN", "BEING", "BELOW", "BROWN", "CHECK", "CLEAR", "COULD", "EARLY", "EVERY", "EXTRA", "FIRST", "FOUND",
+        "GREAT", "GROUP", "HOUSE", "JUDGE", "JUMPS", "KNIFE", "LARGE", "LATER", "LEARN", "LIGHT", "MIGHT", "MONEY",
+        "MORSE", "NEVER", "NIGHT", "NOISE", "OFTEN", "ORDER", "OTHER", "PAPER", "PLACE", "POINT", "POWER", "QUICK",
+        "QUITE", "RADIO", "RIGHT", "SHALL", "SINCE", "SMALL", "SOUND", "SPEAK", "SPEED", "STAND", "START", "STATE",
+        "STILL", "STORY", "STUDY", "THEIR", "THERE", "THESE", "THING", "THINK", "THOSE", "THREE", "TODAY", "UNDER",
+        "UNTIL", "VOICE", "WATER", "WHERE", "WHICH", "WHILE", "WHITE", "WHOLE", "WORLD", "WOULD", "WRITE", "YOUNG",
+        "ALWAYS", "ANSWER", "AROUND", "BEFORE", "BETTER", "CHANGE", "FAMILY", "FRIEND", "GROUND", "LETTER", "LISTEN",
+        "LITTLE", "MOMENT", "MOTHER", "NUMBER", "OXYGEN", "PEOPLE", "PERSON", "SCHOOL", "SHOULD", "SIGNAL", "SIMPLE",
+        "SUMMER", "SYSTEM", "THOUGH", "TOWARD", "TRAVEL", "VALLEY", "WINTER", "YELLOW", "ALREADY", "AMATEUR",
+        "ANOTHER", "ANTENNA", "BECAUSE", "BELIEVE", "BETWEEN", "BROUGHT", "CERTAIN", "COMPANY", "CONTEST", "COUNTRY",
+        "EVENING", "EXAMPLE", "FREEDOM", "GENERAL", "HISTORY", "HOWEVER", "HUNDRED", "JOURNEY", "KITCHEN", "MACHINE",
+        "MESSAGE", "MINUTES", "MORNING", "NOTHING", "OUTSIDE", "PERHAPS", "PICTURE", "PRESENT", "PROBLEM", "PROGRAM",
+        "RECEIVE", "SEVERAL", "SPECIAL", "STATION", "STRANGE", "THOUGHT", "THROUGH", "TONIGHT", "VILLAGE", "WEATHER",
+        "WEEKEND", "WITHOUT", "WRITING", "BIRTHDAY", "BUILDING", "CHILDREN", "EVERYONE", "EXERCISE", "HOSPITAL",
+        "LANGUAGE", "MOUNTAIN", "OPERATOR", "PRACTICE", "QUESTION", "REMEMBER", "STRENGTH", "TOGETHER", "TRAINING",
+        "UMBRELLA", "YOURSELF", "BEAUTIFUL", "BEGINNING", "DIFFERENT", "EQUIPMENT", "FREQUENCY", "IMPORTANT",
+        "KNOWLEDGE", "SOMETHING", "TELEPHONE", "WONDERFUL", "YESTERDAY", "ACCEPTABLE", "BACKGROUND", "CONDITIONS",
+        "CONNECTION", "DIFFERENCE", "DIRECTIONS", "EVERYTHING", "EXPERIENCE", "GOVERNMENT", "IMPORTANCE",
+        "POPULATION", "REMARKABLE", "THEMSELVES", "UNDERSTAND", "COMPETITION", "DEFINITIONS", "ELECTRICITY",
+        "ENVIRONMENT", "EXPERIMENTS", "IMMEDIATELY", "INDEPENDENT", "INFORMATION", "INSTRUMENTS", "OPPORTUNITY",
+        "TEMPERATURE", "TRANSMITTER", "ACKNOWLEDGED", "APPRECIATION", "ARCHITECTURE", "ASSOCIATIONS", "CONVERSATION",
+        "DISTRIBUTION", "ENTERTAINING", "INSTRUCTIONS", "INTRODUCTION", "OBSERVATIONS", "PARTICULARLY",
+        "PROFESSIONAL", "RELATIONSHIP",
+    ]
+
+    /// Word lengths that can be chosen: A and I up to 12-letter words.
+    public static let lengths: ClosedRange<Int> = 1...12
+
+    /// The words whose length is within `minLength...maxLength`.
+    public static func list(minLength: Int, maxLength: Int) -> [String] {
+        let range = max(1, min(minLength, maxLength))...max(minLength, maxLength)
+        return common.filter { range.contains($0.count) }
+    }
 }

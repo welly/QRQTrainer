@@ -26,11 +26,12 @@ private struct ReadyView: View {
     @AppStorage(Pref.startCPM) private var startCPM = 100.0
     @AppStorage(Pref.count) private var count = 50
     @AppStorage(Pref.showWPM) private var showWPM = false
+    @AppStorage(Pref.fixedSpeed) private var fixedSpeed = false
     private var prefs = SourcePrefs()
 
     var body: some View {
         let source = trainer.sourceName()
-        let item = prefs.mode.itemName
+        let item = prefs.itemName
         let attempts = history.records(source: source)
         let best = history.best(source: source)
 
@@ -39,7 +40,8 @@ private struct ReadyView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Ready to copy")
                         .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                    Text("Listen to each \(item), type it, press Return. Copy correctly and the speed goes up; miss and it drops.")
+                    Text(fixedSpeed ? "Listen to each \(item), type it, press Return. Every \(item) is sent at the same speed."
+                         : "Listen to each \(item), type it, press Return. Copy correctly and the speed goes up; miss and it drops.")
                         .foregroundStyle(.secondary)
                 }
 
@@ -48,7 +50,18 @@ private struct ReadyView: View {
                 HStack(alignment: .top, spacing: 16) {
                     Card {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Start speed").font(.headline)
+                            HStack {
+                                Text(fixedSpeed ? "Speed" : "Start speed").font(.headline)
+                                Spacer()
+                                Picker("Speed", selection: $fixedSpeed) {
+                                    Text("Adaptive").tag(false)
+                                    Text("Fixed").tag(true)
+                                }
+                                .pickerStyle(.segmented)
+                                .labelsHidden()
+                                .fixedSize()
+                                .help("Adaptive: each correct copy is faster and each miss slower. Fixed: every \(item) is sent at this speed.")
+                            }
                             HStack(alignment: .firstTextBaseline, spacing: 8) {
                                 Text("\(SpeedFormat.value(startCPM, wpm: showWPM))")
                                     .font(.system(size: 56, weight: .bold, design: .rounded))
@@ -101,7 +114,7 @@ private struct ReadyView: View {
                                 .font(.callout)
                                 .foregroundStyle(.secondary)
                             Divider()
-                            Label(source, systemImage: prefs.mode.symbol)
+                            Label(source, systemImage: prefs.symbol)
                                 .font(.callout)
                                 .lineLimit(2)
                         }
@@ -136,7 +149,11 @@ private struct ReadyView: View {
                     HStack(alignment: .top, spacing: 24) {
                         tip("ear", "Copy in your head", "Don't write while listening. Hear the whole \(item), then type it.")
                         tip("arrow.counterclockwise", "Repeat with F6 / ⌘R", "Plays it again, but that \(item) scores nothing.")
-                        tip("chart.line.uptrend.xyaxis", "Speed adapts", "Every correct copy is faster, every miss is slower.")
+                        if fixedSpeed {
+                            tip("equal.circle", "Speed stays fixed", "Every \(item) is sent at the speed you chose.")
+                        } else {
+                            tip("chart.line.uptrend.xyaxis", "Speed adapts", "Every correct copy is faster, every miss is slower.")
+                        }
                     }
                 }
             }

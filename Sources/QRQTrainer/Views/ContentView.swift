@@ -71,7 +71,7 @@ private struct SidebarFooter: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Copying").font(.caption).foregroundStyle(.secondary)
-            Label(trainer.sourceName(), systemImage: prefs.mode.symbol)
+            Label(trainer.sourceName(), systemImage: prefs.symbol)
                 .font(.callout)
                 .lineLimit(2)
             SettingsLink {

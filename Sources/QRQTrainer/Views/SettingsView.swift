@@ -84,6 +84,7 @@ private struct AudioSettings: View {
 private struct TrainingSettings: View {
     @AppStorage(Pref.stepPercent) private var stepPercent = 4.0
     @AppStorage(Pref.pauseMs) private var pauseMs = 400.0
+    @AppStorage(Pref.fixedSpeed) private var fixedSpeed = false
     @AppStorage(Pref.showWPM) private var showWPM = false
     @AppStorage(Pref.farnsworth) private var farnsworth = false
     @AppStorage(Pref.farnsworthPercent) private var farnsworthPercent = 60.0
@@ -98,12 +99,14 @@ private struct TrainingSettings: View {
                 }
             }
             Section {
+                Toggle("Fixed speed", isOn: $fixedSpeed)
                 LabeledContent("Speed change per copy") {
-                    Stepper("\(stepPercent.formatted())%", value: $stepPercent, in: 1...10, step: 0.5)
-                        .monospacedDigit()
+                    ValueStepper(text: "\(stepPercent.formatted())%", value: $stepPercent, range: 1...10, step: 0.5)
                 }
+                .disabled(fixedSpeed)
             } footer: {
-                Text("A correct copy raises the speed by this percentage, a miss lowers it. Repeats don't raise it.")
+                Text(fixedSpeed ? "Every item is sent at the start speed. Fixed-speed attempts are scored separately."
+                     : "A correct copy raises the speed by this percentage, a miss lowers it. Repeats don't raise it.")
                     .foregroundStyle(.secondary)
             }
             Section {
@@ -144,7 +147,7 @@ private struct TrainingSettings: View {
 private struct CharacterSettings: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Choose which characters character-group modes may send. A mode only uses the classes in its name, so Letters ignores the figures and symbols chosen here.")
+            Text("Choose which characters character-group modes may send. A mode only uses the classes in its name, so Letters ignores the numbers and symbols chosen here.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -193,10 +196,10 @@ private struct CallsignSettings: View {
 
             Section {
                 LabeledContent("Portable / mobile (/P, /M)") {
-                    Stepper("\(Int(portablePercent))%", value: $portablePercent, in: 0...50, step: 5).monospacedDigit()
+                    ValueStepper(text: "\(Int(portablePercent))%", value: $portablePercent, range: 0...50, step: 5)
                 }
                 LabeledContent("Foreign prefix (EA8/…)") {
-                    Stepper("\(Int(prefixedPercent))%", value: $prefixedPercent, in: 0...50, step: 5).monospacedDigit()
+                    ValueStepper(text: "\(Int(prefixedPercent))%", value: $prefixedPercent, range: 0...50, step: 5)
                 }
                 LabeledContent("Examples") {
                     Text(preview.joined(separator: "  ")).font(.callout.monospaced()).foregroundStyle(.secondary)

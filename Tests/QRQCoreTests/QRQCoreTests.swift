@@ -174,6 +174,29 @@ private func close(_ a: Double, _ b: Double, _ tolerance: Double = 1e-9) -> Bool
         #expect(Scoring.points(sent: "?/=", received: "?/=", cpm: 200, repeated: false) > 0)
     }
 
+    @Test func fixedSpeedNeverChanges() {
+        var session = TrainingSession(config: TrainingConfig(count: 3, startCPM: 125, stepPercent: 0), callsigns: ["AB", "CD", "EF"])
+        _ = session.submit("AB")
+        _ = session.submit("XX")
+        #expect(session.currentCPM == 125)
+        #expect(session.results.allSatisfy { $0.cpm == 125 })
+    }
+
+    @Test func wordsAreSendable() {
+        for word in Words.common { #expect(word.allSatisfy { Morse.code(for: $0) != nil }, "\(word)") }
+        #expect(Set(Words.common).count == Words.common.count)
+        #expect(Words.common.count >= 200)
+        #expect(TrainerMode.words.itemName == "word" && !TrainerMode.words.usesGroups)
+    }
+
+    @Test func wordsFilterByLength() {
+        #expect(Words.list(minLength: 4, maxLength: 4).allSatisfy { $0.count == 4 })
+        #expect(Words.list(minLength: 6, maxLength: 3).allSatisfy { (3...6).contains($0.count) })  // order doesn't matter
+        #expect(Words.list(minLength: Words.lengths.lowerBound, maxLength: Words.lengths.upperBound).count == Words.common.count)
+        #expect(Words.lengths == 1...12)
+        for n in Words.lengths { #expect(Words.list(minLength: n, maxLength: n).count >= 2, "length \(n)") }
+    }
+
     @Test func hamCodesAreSendable() {
         for code in HamCodes.all { #expect(code.allSatisfy { Morse.code(for: $0) != nil }, "\(code)") }
         #expect(Set(HamCodes.all).count == HamCodes.all.count)
@@ -291,7 +314,7 @@ private func close(_ a: Double, _ b: Double, _ tolerance: Double = 1e-9) -> Bool
         #expect(!a.stat(for: "T").isInstant)
         #expect(a.stat(for: "T").averageThinkMs == 2000)
         #expect(a.weakest(5).map(\.character) == ["T"])
-        #expect(a.strongest(1).first?.character == "E")
+        #expect(a.strongest(5).map(\.character) == ["E"])  // only ⚡ characters, never the slow T
     }
 
     @Test func allowanceGrowsWithLength() {

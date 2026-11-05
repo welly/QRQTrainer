@@ -7,6 +7,9 @@ enum Pref {
     static let startCPM = "startCPM"
     static let stepPercent = "stepPercent"
     static let pauseMs = "pauseMs"
+    static let fixedSpeed = "fixedSpeed"
+    /// Characters set up by Insights' "Practise these". Empty when not practising.
+    static let practiceSet = "practiceSet"
     static let pitch = "pitch"
     static let randomPitch = "randomPitch"
     static let pitchSpread = "pitchSpread"
@@ -21,6 +24,10 @@ enum Pref {
     static let groupLength = "groupLength"
     static let groupMin = "groupMinLength"
     static let groupMax = "groupMaxLength"
+    static let wordVariable = "variableWordLength"
+    static let wordLength = "wordLength"
+    static let wordMin = "wordMinLength"
+    static let wordMax = "wordMaxLength"
     static let composition = "groupComposition"
     static let enabledCharacters = "enabledCharacters"
     static let farnsworth = "farnsworth"
@@ -29,10 +36,11 @@ enum Pref {
     static let allCharacters = String(CharacterClass.allCharacters)
 
     static let defaults: [String: Any] = [
-        count: 50, startCPM: 100.0, stepPercent: 4.0, pauseMs: 400.0,
+        count: 50, startCPM: 100.0, stepPercent: 4.0, fixedSpeed: false, practiceSet: "", pauseMs: 400.0,
         pitch: 600.0, randomPitch: false, pitchSpread: 100.0, volume: 0.6, riseMs: 5.0,
         useImported: false, portablePercent: 0.0, prefixedPercent: 0.0, showWPM: false,
         mode: TrainerMode.callsigns.rawValue, variableLength: false, groupLength: 5, groupMin: 1, groupMax: 12,
+        wordVariable: true, wordLength: 5, wordMin: 1, wordMax: 12,
         composition: GroupComposition.mixed.rawValue, enabledCharacters: allCharacters,
         farnsworth: false, farnsworthPercent: 60.0,
     ]
@@ -44,6 +52,7 @@ enum Pref {
 struct TrainerSettings {
     var count: Int
     var startCPM: Double
+    /// Speed change per copy; 0 when the speed is fixed.
     var stepPercent: Double
     var pauseMs: Double
     var pitch: Double
@@ -55,6 +64,8 @@ struct TrainerSettings {
     var portablePercent: Double
     var prefixedPercent: Double
     var mode: TrainerMode
+    /// When not empty, attempts are groups of only these characters, whatever the mode.
+    var practice: Set<Character>
     var minLength: Int
     var maxLength: Int
     var composition: GroupComposition
@@ -63,10 +74,16 @@ struct TrainerSettings {
     var farnsworth: Double
 
     static func current(_ d: UserDefaults = .standard) -> TrainerSettings {
-        TrainerSettings(
+        let mode = TrainerMode(rawValue: d.string(forKey: Pref.mode) ?? "") ?? .callsigns
+        // Words keep their own length setting, separate from character groups.
+        let practice = Set(d.string(forKey: Pref.practiceSet) ?? "").filter { Morse.code(for: $0) != nil }
+        let words = mode == .words && practice.isEmpty
+        let variable = d.bool(forKey: words ? Pref.wordVariable : Pref.variableLength)
+        let fixed = d.integer(forKey: words ? Pref.wordLength : Pref.groupLength)
+        return TrainerSettings(
             count: max(1, d.integer(forKey: Pref.count)),
             startCPM: d.double(forKey: Pref.startCPM),
-            stepPercent: d.double(forKey: Pref.stepPercent),
+            stepPercent: d.bool(forKey: Pref.fixedSpeed) ? 0 : d.double(forKey: Pref.stepPercent),
             pauseMs: d.double(forKey: Pref.pauseMs),
             pitch: d.double(forKey: Pref.pitch),
             randomPitch: d.bool(forKey: Pref.randomPitch),
@@ -76,33 +93,60 @@ struct TrainerSettings {
             useImported: d.bool(forKey: Pref.useImported),
             portablePercent: d.double(forKey: Pref.portablePercent),
             prefixedPercent: d.double(forKey: Pref.prefixedPercent),
-            mode: TrainerMode(rawValue: d.string(forKey: Pref.mode) ?? "") ?? .callsigns,
-            minLength: d.bool(forKey: Pref.variableLength) ? d.integer(forKey: Pref.groupMin) : d.integer(forKey: Pref.groupLength),
-            maxLength: d.bool(forKey: Pref.variableLength) ? d.integer(forKey: Pref.groupMax) : d.integer(forKey: Pref.groupLength),
+            mode: mode,
+            practice: practice,
+            minLength: variable ? d.integer(forKey: words ? Pref.wordMin : Pref.groupMin) : fixed,
+            maxLength: variable ? d.integer(forKey: words ? Pref.wordMax : Pref.groupMax) : fixed,
             composition: GroupComposition(rawValue: d.string(forKey: Pref.composition) ?? "") ?? .mixed,
             enabledCharacters: Set(d.string(forKey: Pref.enabledCharacters) ?? Pref.allCharacters),
             farnsworth: d.bool(forKey: Pref.farnsworth) ? min(1, max(0.2, d.double(forKey: Pref.farnsworthPercent) / 100)) : 1
         )
     }
 
+    /// The words Words mode can send with the chosen length.
+    var wordList: [String] { Words.list(minLength: minLength, maxLength: maxLength) }
+
+    /// "5" or "3–7".
+    var lengthLabel: String { minLength == maxLength ? "\(minLength)" : "\(minLength)–\(maxLength)" }
+
     var groupGenerator: GroupGenerator {
-        GroupGenerator(mode: mode, enabled: enabledCharacters, minLength: minLength, maxLength: maxLength, composition: composition)
+        if !practice.isEmpty {
+            return GroupGenerator(mode: .all, enabled: practice, minLength: minLength, maxLength: maxLength)
+        }
+        return GroupGenerator(mode: mode, enabled: enabledCharacters, minLength: minLength, maxLength: maxLength, composition: composition)
+    }
+
+    /// True for attempts made of random character groups, including a practice set.
+    var usesGroups: Bool { !practice.isEmpty || mode.usesGroups }
+
+    /// What one item is called: "group" while practising, otherwise the mode's name for it.
+    var itemName: String { practice.isEmpty ? mode.itemName : "group" }
+
+    /// The practice characters in display order, e.g. "W 8 N".
+    var practiceLabel: String {
+        CharacterClass.allCharacters.filter(practice.contains).map(String.init).joined(separator: " ")
     }
 
     /// Name of what the next attempt will send. Attempts are only compared (best score, progress) within one source,
     /// so it includes everything that changes difficulty: mode, group length, composition and a custom character set.
     @MainActor func sourceName(library: CallsignLibrary) -> String {
-        let base = baseSourceName(library: library)
-        return farnsworth < 1 ? "\(base) · Farnsworth \(Int((farnsworth * 100).rounded()))%" : base
+        var name = baseSourceName(library: library)
+        if farnsworth < 1 { name += " · Farnsworth \(Int((farnsworth * 100).rounded()))%" }
+        if stepPercent == 0 { name += " · fixed speed" }
+        return name
     }
 
     @MainActor private func baseSourceName(library: CallsignLibrary) -> String {
+        if !practice.isEmpty { return "Practice \(practiceLabel) · \(lengthLabel)" }
         switch mode {
         case .callsigns:
             if useImported, !library.calls.isEmpty { return library.name ?? "Imported list" }
             return "Generated"
         case .hamCodes:
-            return TrainerMode.hamCodes.title
+            return mode.title
+        case .words:
+            let all = minLength <= Words.lengths.lowerBound && maxLength >= Words.lengths.upperBound
+            return all ? mode.title : "\(mode.title) · \(lengthLabel)"
         default:
             let g = groupGenerator
             var parts = [mode.title, g.minLength == g.maxLength ? "\(g.minLength)" : "\(g.minLength)–\(g.maxLength)"]

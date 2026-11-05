@@ -108,10 +108,10 @@ public struct CharacterAnalysis: Sendable {
         }.prefix(n))
     }
 
-    /// Characters with at least `minSamples` copies, most often recognised instantly first (ties: more accurate,
-    /// then more copies).
+    /// Instantly recognised characters (⚡) with at least `minSamples` copies, most often instant first (ties: more
+    /// accurate, then more copies). Empty until a character earns ⚡.
     public func strongest(_ n: Int, minSamples: Int = 5) -> [CharacterStat] {
-        Array(rated(minSamples).sorted {
+        Array(rated(minSamples).filter(\.isInstant).sorted {
             ($0.recognition, $0.accuracy!, $0.sent, String($1.character))
                 > ($1.recognition, $1.accuracy!, $1.sent, String($0.character))
         }.prefix(n))

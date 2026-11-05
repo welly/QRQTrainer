@@ -147,9 +147,9 @@ private struct AttemptDetail: View {
                     row("Correct", "\(record.correctCount) of \(record.results.count)")
                     row("Peak speed", SpeedFormat.string(record.peakCPM, wpm: showWPM))
                     row("Average speed", SpeedFormat.string(record.averageCPM, wpm: showWPM))
-                    row("Start speed", SpeedFormat.string(record.config.startCPM, wpm: showWPM))
+                    row(record.config.stepPercent == 0 ? "Speed" : "Start speed", SpeedFormat.string(record.config.startCPM, wpm: showWPM))
                     row("Avg response (ms)", ResponseFormat.string(record.averageResponseMs))
-                    row("Speed step", "\(record.config.stepPercent.formatted())% per copy")
+                    row("Speed step", record.config.stepPercent == 0 ? "Fixed speed" : "\(record.config.stepPercent.formatted())% per copy")
                 }
                 .font(.callout)
                 AttemptSpeedChart(record: record, showWPM: showWPM)

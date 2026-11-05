@@ -119,3 +119,22 @@ func snapped(_ value: Binding<Double>, to step: Double) -> Binding<Double> {
 extension Date {
     var shortDateTime: String { formatted(date: .abbreviated, time: .shortened) }
 }
+
+/// A value with stepper arrows after it. The value has a fixed width, so neither moves as it changes.
+struct ValueStepper: View {
+    let text: String
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+    let step: Double
+    var width: CGFloat = 44
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(text)
+                .monospacedDigit()
+                .frame(minWidth: width, alignment: .trailing)
+            Stepper(text, value: $value, in: range, step: step)
+                .labelsHidden()
+        }
+    }
+}

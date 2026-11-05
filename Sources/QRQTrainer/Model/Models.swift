@@ -120,13 +120,15 @@ final class TrainerModel {
     /// Name of what the next attempt will send, from the current preferences. Scores are compared within a source.
     func sourceName() -> String { TrainerSettings.current().sourceName(library: library) }
 
-    /// What one item of the running (or next) attempt is called: "callsign", "group" or "code".
-    var itemName: String { (phase == .idle ? TrainerSettings.current() : settings).mode.itemName }
+    /// What one item of the running (or next) attempt is called: "callsign", "group", "word" or "code".
+    var itemName: String { (phase == .idle ? TrainerSettings.current() : settings).itemName }
 
     /// False when the character selection leaves nothing to send in the chosen mode.
     func canStart() -> Bool {
         let s = TrainerSettings.current()
-        return !s.mode.usesGroups || s.groupGenerator.canGenerate
+        if s.usesGroups { return s.groupGenerator.canGenerate }
+        if s.mode == .words { return !s.wordList.isEmpty }
+        return true
     }
 
     var isNewBest: Bool {
@@ -134,40 +136,41 @@ final class TrainerModel {
         return record.score > (previousBest ?? 0)
     }
 
-    /// Starts an attempt in the current mode. With `focus`, it drills those characters: callsigns and codes are
-    /// chosen to contain them, and character groups are made only from them. Focused attempts are scored separately.
-    func start(focus: Set<Character> = []) {
+    /// Sets up the Train screen to practise these characters: attempts become groups of only them until the
+    /// practice set is cleared. Practice attempts are scored separately.
+    func practise(_ characters: Set<Character>) {
+        UserDefaults.standard.set(String(CharacterClass.allCharacters.filter(characters.contains)), forKey: Pref.practiceSet)
+    }
+
+    /// Ends practice and goes back to the chosen mode.
+    func clearPractice() { UserDefaults.standard.set("", forKey: Pref.practiceSet) }
+
+    /// Starts an attempt in the current mode, or of the practice set while there is one.
+    func start() {
         guard phase != .running else { return }
         stopTestTone()
         settings = .current()
         var rng = SystemRandomNumberGenerator()
         let calls: [String]
-        switch settings.mode {
-        case .callsigns:
-            if settings.useImported, !library.calls.isEmpty {
-                calls = focus.isEmpty ? CallsignList.pick(settings.count, from: library.calls, using: &rng)
-                    : CallsignList.pick(settings.count, from: library.calls, focusing: focus, using: &rng)
-            } else {
-                let generator = CallsignGenerator(portableProbability: settings.portablePercent / 100,
-                                                  prefixedProbability: settings.prefixedPercent / 100)
-                calls = generator.generate(settings.count, focusing: focus, using: &rng)
-            }
-        case .hamCodes:
-            calls = focus.isEmpty ? CallsignList.pick(settings.count, from: HamCodes.all, using: &rng)
-                : CallsignList.pick(settings.count, from: HamCodes.all, focusing: focus, using: &rng)
-        default:
-            if focus.isEmpty {
-                calls = settings.groupGenerator.generate(settings.count, using: &rng)
-            } else {
-                // Groups of only the focus characters, whatever classes they belong to.
-                calls = GroupGenerator(mode: .all, enabled: focus, minLength: settings.minLength,
-                                       maxLength: settings.maxLength).generate(settings.count, using: &rng)
+        if settings.usesGroups {
+            calls = settings.groupGenerator.generate(settings.count, using: &rng)
+        } else {
+            switch settings.mode {
+            case .callsigns:
+                if settings.useImported, !library.calls.isEmpty {
+                    calls = CallsignList.pick(settings.count, from: library.calls, using: &rng)
+                } else {
+                    calls = CallsignGenerator(portableProbability: settings.portablePercent / 100,
+                                              prefixedProbability: settings.prefixedPercent / 100)
+                        .generate(settings.count, using: &rng)
+                }
+            case .words:
+                calls = CallsignList.pick(settings.count, from: settings.wordList, using: &rng)
+            default:
+                calls = CallsignList.pick(settings.count, from: HamCodes.all, using: &rng)
             }
         }
         source = settings.sourceName(library: library)
-        if !focus.isEmpty {
-            source += " · focus " + CharacterClass.allCharacters.filter(focus.contains).map(String.init).joined(separator: " ")
-        }
         guard !calls.isEmpty else { return }
 
         session = TrainingSession(config: settings.config, callsigns: calls)

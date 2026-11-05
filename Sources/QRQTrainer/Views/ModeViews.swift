@@ -10,10 +10,20 @@ struct SourcePrefs: DynamicProperty {
     @AppStorage(Pref.groupLength) var groupLength = 5
     @AppStorage(Pref.groupMin) var groupMin = 1
     @AppStorage(Pref.groupMax) var groupMax = 12
+    @AppStorage(Pref.wordVariable) var wordVariable = true
+    @AppStorage(Pref.wordLength) var wordLength = 5
+    @AppStorage(Pref.wordMin) var wordMin = 1
+    @AppStorage(Pref.wordMax) var wordMax = 12
     @AppStorage(Pref.composition) var composition = GroupComposition.mixed
     @AppStorage(Pref.enabledCharacters) var enabledCharacters = Pref.allCharacters
     @AppStorage(Pref.farnsworth) var farnsworth = false
     @AppStorage(Pref.farnsworthPercent) var farnsworthPercent = 60.0
+    @AppStorage(Pref.fixedSpeed) var fixedSpeed = false
+    @AppStorage(Pref.practiceSet) var practiceSet = ""
+
+    var isPractising: Bool { !practiceSet.isEmpty }
+    var symbol: String { isPractising ? "scope" : mode.symbol }
+    var itemName: String { isPractising ? "group" : mode.itemName }
 }
 
 extension TrainerMode {
@@ -21,6 +31,7 @@ extension TrainerMode {
         switch self {
         case .callsigns: "antenna.radiowaves.left.and.right"
         case .hamCodes: "text.bubble"
+        case .words: "text.word.spacing"
         case .letters: "textformat.abc"
         case .figures: "number"
         case .symbols: "questionmark.circle"
@@ -32,6 +43,7 @@ extension TrainerMode {
 /// Ready-screen card: choose the trainer mode, group length, composition and characters.
 struct WhatToCopyCard: View {
     @Environment(CallsignLibrary.self) private var library
+    @Environment(TrainerModel.self) private var trainer
     private var prefs = SourcePrefs()
     @State private var showCharacters = false
     @State private var seed = UInt64.random(in: 0...UInt64.max)
@@ -45,10 +57,17 @@ struct WhatToCopyCard: View {
                 HStack {
                     Text("What to copy").font(.headline)
                     Spacer()
-                    modePicker
+                    if prefs.isPractising {
+                        Button("Back to \(mode.title)") { trainer.clearPractice() }
+                            .help("Stop practising these characters and copy \(mode.title.lowercased()) again")
+                    } else {
+                        modePicker
+                    }
                 }
 
-                if mode.usesGroups {
+                if prefs.isPractising {
+                    practiceOptions
+                } else if mode.usesGroups {
                     groupOptions(mode)
                 } else if mode == .callsigns {
                     HStack {
@@ -57,6 +76,8 @@ struct WhatToCopyCard: View {
                         SettingsLink { Text("Callsign settings…") }.buttonStyle(.link)
                     }
                     .font(.callout)
+                } else if mode == .words {
+                    wordOptions
                 } else {
                     Text("Q codes, abbreviations and reports such as QTH, TNX and 5NN.")
                         .font(.callout)
@@ -71,7 +92,7 @@ struct WhatToCopyCard: View {
 
     private var modePicker: some View {
         Picker("Mode", selection: prefs.$mode) {
-            ForEach([TrainerMode.callsigns, .hamCodes]) { Label($0.title, systemImage: $0.symbol).tag($0) }
+            ForEach([TrainerMode.callsigns, .hamCodes, .words]) { Label($0.title, systemImage: $0.symbol).tag($0) }
             Divider()
             ForEach([TrainerMode.letters, .figures, .symbols]) { Label($0.title, systemImage: $0.symbol).tag($0) }
             Divider()
@@ -85,26 +106,8 @@ struct WhatToCopyCard: View {
     private func groupOptions(_ mode: TrainerMode) -> some View {
         let generator = TrainerSettings.current().groupGenerator
         HStack(alignment: .top, spacing: 28) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Group length").font(.subheadline).foregroundStyle(.secondary)
-                HStack(spacing: 12) {
-                    Picker("Group length", selection: prefs.$variableLength) {
-                        Text("Fixed").tag(false)
-                        Text("Variable").tag(true)
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .fixedSize()
-                    if prefs.variableLength {
-                        lengthStepper(prefs.$groupMin, range: Self.groupLengths.lowerBound...prefs.groupMax)
-                        Text("to").foregroundStyle(.secondary)
-                        lengthStepper(prefs.$groupMax, range: prefs.groupMin...Self.groupLengths.upperBound)
-                    } else {
-                        lengthStepper(prefs.$groupLength, range: Self.groupLengths)
-                    }
-                    Text("characters").foregroundStyle(.secondary)
-                }
-            }
+            lengthControl("Group length", variable: prefs.$variableLength, fixed: prefs.$groupLength,
+                          min: prefs.$groupMin, max: prefs.$groupMax, range: Self.groupLengths)
 
             if mode.classes.count > 1 {
                 VStack(alignment: .leading, spacing: 8) {
@@ -142,6 +145,72 @@ struct WhatToCopyCard: View {
         }
     }
 
+    /// Practice set from Insights: groups of only these characters.
+    @ViewBuilder
+    private var practiceOptions: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("Practising the characters that need work", systemImage: "scope")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            HStack(spacing: 6) {
+                ForEach(CharacterClass.allCharacters.filter(Set(prefs.practiceSet).contains), id: \.self) { ch in
+                    Text(String(ch))
+                        .font(.system(.body, design: .monospaced, weight: .semibold))
+                        .frame(width: 34, height: 30)
+                        .foregroundStyle(.white)
+                        .background(Color.orange, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                }
+            }
+        }
+        lengthControl("Group length", variable: prefs.$variableLength, fixed: prefs.$groupLength,
+                      min: prefs.$groupMin, max: prefs.$groupMax, range: Self.groupLengths)
+    }
+
+    @ViewBuilder
+    private var wordOptions: some View {
+        HStack(alignment: .top) {
+            lengthControl("Word length", variable: prefs.$wordVariable, fixed: prefs.$wordLength,
+                          min: prefs.$wordMin, max: prefs.$wordMax, range: Words.lengths)
+            Spacer(minLength: 0)
+            VStack(alignment: .trailing, spacing: 8) {
+                Text("Words").font(.subheadline).foregroundStyle(.secondary)
+                Text("\(TrainerSettings.current().wordList.count) of \(Words.common.count)")
+                    .monospacedDigit()
+                    .frame(minHeight: 22)
+            }
+        }
+        if TrainerSettings.current().wordList.isEmpty {
+            Label("No words of that length. Choose a different length to start.", systemImage: "exclamationmark.triangle.fill")
+                .font(.callout)
+                .foregroundStyle(.orange)
+        }
+    }
+
+    /// Fixed or variable length, with steppers for the length or the min–max range.
+    private func lengthControl(_ title: String, variable: Binding<Bool>, fixed: Binding<Int>,
+                               min lower: Binding<Int>, max upper: Binding<Int>, range: ClosedRange<Int>) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title).font(.subheadline).foregroundStyle(.secondary)
+            HStack(spacing: 12) {
+                Picker(title, selection: variable) {
+                    Text("Fixed").tag(false)
+                    Text("Variable").tag(true)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .fixedSize()
+                if variable.wrappedValue {
+                    lengthStepper(lower, range: range.lowerBound...Swift.max(range.lowerBound, Swift.min(upper.wrappedValue, range.upperBound)))
+                    Text("to").foregroundStyle(.secondary)
+                    lengthStepper(upper, range: Swift.min(range.upperBound, Swift.max(lower.wrappedValue, range.lowerBound))...range.upperBound)
+                } else {
+                    lengthStepper(fixed, range: range)
+                }
+                Text(title == "Word length" ? "letters" : "characters").foregroundStyle(.secondary)
+            }
+        }
+    }
+
     private func lengthStepper(_ value: Binding<Int>, range: ClosedRange<Int>) -> some View {
         Stepper(value: value, in: range) {
             Text("\(value.wrappedValue)").monospacedDigit().frame(minWidth: 18, alignment: .trailing)
@@ -165,8 +234,10 @@ struct WhatToCopyCard: View {
         // Reads every source preference, so it changes whenever one of them does.
         _ = (prefs.mode, prefs.variableLength, prefs.groupLength, prefs.groupMin, prefs.groupMax,
              prefs.composition, prefs.enabledCharacters, prefs.useImported)
+        _ = (prefs.wordVariable, prefs.wordLength, prefs.wordMin, prefs.wordMax, prefs.practiceSet)
         var rng = SeededRandom(seed: seed)
         let s = TrainerSettings.current()
+        if s.usesGroups { return s.groupGenerator.generate(8, using: &rng) }
         switch s.mode {
         case .callsigns:
             if s.useImported, !library.calls.isEmpty { return CallsignList.pick(6, from: library.calls, using: &rng) }
@@ -174,6 +245,8 @@ struct WhatToCopyCard: View {
                 .generate(6, using: &rng)
         case .hamCodes:
             return CallsignList.pick(8, from: HamCodes.all, using: &rng)
+        case .words:
+            return CallsignList.pick(8, from: s.wordList, using: &rng)
         default:
             return s.groupGenerator.generate(8, using: &rng)
         }
