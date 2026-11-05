@@ -7,22 +7,15 @@ struct InsightsView: View {
     @Environment(HistoryModel.self) private var history
     @Environment(TrainerModel.self) private var trainer
     @AppStorage(Pref.showWPM) private var showWPM = false
-    @AppStorage("insightsRange") private var range: TimeRange = .last50
+    @AppStorage(Pref.insightsRange) private var range: TimeRange = .last50
     /// Called after "Practise these" starts an attempt, so the window can switch to Train.
     var onPractise: () -> Void = {}
 
-    /// Characters need this many copies before they're ranked, so one unlucky miss doesn't top the list.
-    private let minSamples = 5
-
-    enum TimeRange: String, CaseIterable, Identifiable {
-        case last10 = "Last 10", last50 = "Last 50", all = "All"
-        var id: Self { self }
-        var limit: Int? { self == .last10 ? 10 : self == .last50 ? 50 : nil }
-    }
+    private let minSamples = HistoryModel.minSamples
+    typealias TimeRange = HistoryModel.InsightsRange
 
     var body: some View {
-        let all = history.records.sorted { $0.date < $1.date }
-        let records = range.limit.map { Array(all.suffix($0)) } ?? all
+        let records = history.records(in: range)
         let results = records.flatMap(\.results)
         let analysis = CharacterAnalysis(results: results)
         let weakest = analysis.weakest(5, minSamples: minSamples)
@@ -47,12 +40,12 @@ struct InsightsView: View {
                                         Spacer()
                                         if !weakest.isEmpty {
                                             Button("Practise these", systemImage: "play.fill") {
-                                                trainer.practise(Set(weakest.map(\.character)))
+                                                trainer.practiseNeedsWork()
                                                 onPractise()
                                             }
                                             .buttonStyle(.borderedProminent)
                                             .disabled(trainer.phase == .running)
-                                            .help("Set up Train with groups of only these characters. Go back to your usual mode from the Train screen.")
+                                            .help("Switch Train to Needs work mode, which sends groups of these characters")
                                         }
                                     }
                                     if weakest.isEmpty {
@@ -130,6 +123,7 @@ struct InsightsView: View {
                 }
             }
         }
+        .onChange(of: range) { history.refreshNeedsWork() }
         .navigationTitle("Insights")
         .toolbar {
             ToolbarItem {

@@ -29,6 +29,8 @@ public enum TrainerMode: String, CaseIterable, Codable, Sendable, Identifiable {
     case callsigns
     case hamCodes
     case words
+    /// Groups of the characters Insights lists under Needs work.
+    case needsWork
     case letters
     case figures
     case symbols
@@ -44,6 +46,7 @@ public enum TrainerMode: String, CaseIterable, Codable, Sendable, Identifiable {
         case .callsigns: "Callsigns"
         case .hamCodes: "Ham codes"
         case .words: "Words"
+        case .needsWork: "Needs work"
         case .letters: "Letters"
         case .figures: "Numbers"
         case .symbols: "Symbols"
@@ -57,7 +60,7 @@ public enum TrainerMode: String, CaseIterable, Codable, Sendable, Identifiable {
     /// Character classes used to build random groups. Empty for word-based modes.
     public var classes: [CharacterClass] {
         switch self {
-        case .callsigns, .hamCodes, .words: []
+        case .callsigns, .hamCodes, .words, .needsWork: []
         case .letters: [.letters]
         case .figures: [.figures]
         case .symbols: [.symbols]

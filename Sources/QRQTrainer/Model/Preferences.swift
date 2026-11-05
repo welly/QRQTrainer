@@ -8,8 +8,9 @@ enum Pref {
     static let stepPercent = "stepPercent"
     static let pauseMs = "pauseMs"
     static let fixedSpeed = "fixedSpeed"
-    /// Characters set up by Insights' "Practise these". Empty when not practising.
-    static let practiceSet = "practiceSet"
+    /// The characters Insights lists under Needs work, kept up to date by HistoryModel for the Needs work mode.
+    static let needsWork = "needsWorkCharacters"
+    static let insightsRange = "insightsRange"
     static let pitch = "pitch"
     static let randomPitch = "randomPitch"
     static let pitchSpread = "pitchSpread"
@@ -36,7 +37,7 @@ enum Pref {
     static let allCharacters = String(CharacterClass.allCharacters)
 
     static let defaults: [String: Any] = [
-        count: 50, startCPM: 100.0, stepPercent: 4.0, fixedSpeed: false, practiceSet: "", pauseMs: 400.0,
+        count: 50, startCPM: 100.0, stepPercent: 4.0, fixedSpeed: false, needsWork: "", pauseMs: 400.0,
         pitch: 600.0, randomPitch: false, pitchSpread: 100.0, volume: 0.6, riseMs: 5.0,
         useImported: false, portablePercent: 0.0, prefixedPercent: 0.0, showWPM: false,
         mode: TrainerMode.callsigns.rawValue, variableLength: false, groupLength: 5, groupMin: 1, groupMax: 12,
@@ -64,7 +65,7 @@ struct TrainerSettings {
     var portablePercent: Double
     var prefixedPercent: Double
     var mode: TrainerMode
-    /// When not empty, attempts are groups of only these characters, whatever the mode.
+    /// The Needs work characters, in Needs work mode (empty otherwise, or when there isn't enough history yet).
     var practice: Set<Character>
     var minLength: Int
     var maxLength: Int
@@ -76,8 +77,8 @@ struct TrainerSettings {
     static func current(_ d: UserDefaults = .standard) -> TrainerSettings {
         let mode = TrainerMode(rawValue: d.string(forKey: Pref.mode) ?? "") ?? .callsigns
         // Words keep their own length setting, separate from character groups.
-        let practice = Set(d.string(forKey: Pref.practiceSet) ?? "").filter { Morse.code(for: $0) != nil }
-        let words = mode == .words && practice.isEmpty
+        let practice: Set<Character> = mode == .needsWork ? Set((d.string(forKey: Pref.needsWork) ?? "").filter { Morse.code(for: $0) != nil }) : []
+        let words = mode == .words
         let variable = d.bool(forKey: words ? Pref.wordVariable : Pref.variableLength)
         let fixed = d.integer(forKey: words ? Pref.wordLength : Pref.groupLength)
         return TrainerSettings(
@@ -110,19 +111,18 @@ struct TrainerSettings {
     var lengthLabel: String { minLength == maxLength ? "\(minLength)" : "\(minLength)–\(maxLength)" }
 
     var groupGenerator: GroupGenerator {
-        if !practice.isEmpty {
+        if mode == .needsWork {
             return GroupGenerator(mode: .all, enabled: practice, minLength: minLength, maxLength: maxLength)
         }
         return GroupGenerator(mode: mode, enabled: enabledCharacters, minLength: minLength, maxLength: maxLength, composition: composition)
     }
 
-    /// True for attempts made of random character groups, including a practice set.
-    var usesGroups: Bool { !practice.isEmpty || mode.usesGroups }
+    /// True for attempts made of random character groups, including Needs work.
+    var usesGroups: Bool { mode == .needsWork || mode.usesGroups }
 
-    /// What one item is called: "group" while practising, otherwise the mode's name for it.
-    var itemName: String { practice.isEmpty ? mode.itemName : "group" }
+    var itemName: String { mode.itemName }
 
-    /// The practice characters in display order, e.g. "W 8 N".
+    /// The Needs work characters in display order, e.g. "W 8 N".
     var practiceLabel: String {
         CharacterClass.allCharacters.filter(practice.contains).map(String.init).joined(separator: " ")
     }
@@ -137,7 +137,8 @@ struct TrainerSettings {
     }
 
     @MainActor private func baseSourceName(library: CallsignLibrary) -> String {
-        if !practice.isEmpty { return "Practice \(practiceLabel) · \(lengthLabel)" }
+        // Scored as one source however the characters change, so progress on Needs work stays comparable.
+        if mode == .needsWork { return "\(mode.title) · \(lengthLabel)" }
         switch mode {
         case .callsigns:
             if useImported, !library.calls.isEmpty { return library.name ?? "Imported list" }

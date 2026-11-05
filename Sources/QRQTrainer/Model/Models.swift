@@ -12,6 +12,40 @@ final class HistoryModel {
 
     init() {
         do { records = try store.load() } catch { errorMessage = "Couldn't read history: \(error.localizedDescription)" }
+        refreshNeedsWork()
+    }
+
+    /// Which attempts Insights (and so Needs work) looks at.
+    enum InsightsRange: String, CaseIterable, Identifiable {
+        case last10 = "Last 10", last50 = "Last 50", all = "All"
+        var id: Self { self }
+        var limit: Int? { self == .last10 ? 10 : self == .last50 ? 50 : nil }
+        static var current: InsightsRange {
+            InsightsRange(rawValue: UserDefaults.standard.string(forKey: Pref.insightsRange) ?? "") ?? .last50
+        }
+    }
+
+    /// Characters need this many copies before they're ranked, so one unlucky miss doesn't top the list.
+    static let minSamples = 5
+
+    /// The attempts in `range`, oldest first.
+    func records(in range: InsightsRange) -> [AttemptRecord] {
+        let all = records.sorted { $0.date < $1.date }
+        return range.limit.map { Array(all.suffix($0)) } ?? all
+    }
+
+    /// The five characters that most need work, as Insights shows them.
+    func needsWork(in range: InsightsRange = .current) -> [CharacterStat] {
+        CharacterAnalysis(results: records(in: range).flatMap(\.results)).weakest(5, minSamples: Self.minSamples)
+    }
+
+    /// Saves the Needs work characters where the Needs work mode reads them. Call when history or the range changes.
+    func refreshNeedsWork() {
+        let chars = Set(needsWork().map(\.character))
+        let value = String(CharacterClass.allCharacters.filter(chars.contains))
+        if UserDefaults.standard.string(forKey: Pref.needsWork) != value {
+            UserDefaults.standard.set(value, forKey: Pref.needsWork)
+        }
     }
 
     var sources: [String] { Array(Set(records.map(\.source))).sorted() }
@@ -27,11 +61,13 @@ final class HistoryModel {
     func add(_ record: AttemptRecord) {
         records.append(record)
         persist()
+        refreshNeedsWork()
     }
 
     func delete(ids: Set<UUID>) {
         records.removeAll { ids.contains($0.id) }
         persist()
+        refreshNeedsWork()
     }
 
     private func persist() {
@@ -136,16 +172,13 @@ final class TrainerModel {
         return record.score > (previousBest ?? 0)
     }
 
-    /// Sets up the Train screen to practise these characters: attempts become groups of only them until the
-    /// practice set is cleared. Practice attempts are scored separately.
-    func practise(_ characters: Set<Character>) {
-        UserDefaults.standard.set(String(CharacterClass.allCharacters.filter(characters.contains)), forKey: Pref.practiceSet)
+    /// Switches to the Needs work mode: groups of the characters Insights says need work.
+    func practiseNeedsWork() {
+        history.refreshNeedsWork()
+        UserDefaults.standard.set(TrainerMode.needsWork.rawValue, forKey: Pref.mode)
     }
 
-    /// Ends practice and goes back to the chosen mode.
-    func clearPractice() { UserDefaults.standard.set("", forKey: Pref.practiceSet) }
-
-    /// Starts an attempt in the current mode, or of the practice set while there is one.
+    /// Starts an attempt in the current mode.
     func start() {
         guard phase != .running else { return }
         stopTestTone()

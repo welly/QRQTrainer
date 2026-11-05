@@ -19,11 +19,10 @@ struct SourcePrefs: DynamicProperty {
     @AppStorage(Pref.farnsworth) var farnsworth = false
     @AppStorage(Pref.farnsworthPercent) var farnsworthPercent = 60.0
     @AppStorage(Pref.fixedSpeed) var fixedSpeed = false
-    @AppStorage(Pref.practiceSet) var practiceSet = ""
+    @AppStorage(Pref.needsWork) var needsWork = ""
 
-    var isPractising: Bool { !practiceSet.isEmpty }
-    var symbol: String { isPractising ? "scope" : mode.symbol }
-    var itemName: String { isPractising ? "group" : mode.itemName }
+    var symbol: String { mode.symbol }
+    var itemName: String { mode.itemName }
 }
 
 extension TrainerMode {
@@ -32,6 +31,7 @@ extension TrainerMode {
         case .callsigns: "antenna.radiowaves.left.and.right"
         case .hamCodes: "text.bubble"
         case .words: "text.word.spacing"
+        case .needsWork: "scope"
         case .letters: "textformat.abc"
         case .figures: "number"
         case .symbols: "questionmark.circle"
@@ -43,7 +43,6 @@ extension TrainerMode {
 /// Ready-screen card: choose the trainer mode, group length, composition and characters.
 struct WhatToCopyCard: View {
     @Environment(CallsignLibrary.self) private var library
-    @Environment(TrainerModel.self) private var trainer
     private var prefs = SourcePrefs()
     @State private var showCharacters = false
     @State private var seed = UInt64.random(in: 0...UInt64.max)
@@ -57,16 +56,11 @@ struct WhatToCopyCard: View {
                 HStack {
                     Text("What to copy").font(.headline)
                     Spacer()
-                    if prefs.isPractising {
-                        Button("Back to \(mode.title)") { trainer.clearPractice() }
-                            .help("Stop practising these characters and copy \(mode.title.lowercased()) again")
-                    } else {
-                        modePicker
-                    }
+                    modePicker
                 }
 
-                if prefs.isPractising {
-                    practiceOptions
+                if mode == .needsWork {
+                    needsWorkOptions
                 } else if mode.usesGroups {
                     groupOptions(mode)
                 } else if mode == .callsigns {
@@ -97,6 +91,8 @@ struct WhatToCopyCard: View {
             ForEach([TrainerMode.letters, .figures, .symbols]) { Label($0.title, systemImage: $0.symbol).tag($0) }
             Divider()
             ForEach([TrainerMode.lettersFigures, .lettersSymbols, .figuresSymbols, .all]) { Text($0.title).tag($0) }
+            Divider()
+            Label(TrainerMode.needsWork.title, systemImage: TrainerMode.needsWork.symbol).tag(TrainerMode.needsWork)
         }
         .labelsHidden()
         .fixedSize()
@@ -145,25 +141,34 @@ struct WhatToCopyCard: View {
         }
     }
 
-    /// Practice set from Insights: groups of only these characters.
+    /// Needs work mode: groups of the characters Insights lists under Needs work.
     @ViewBuilder
-    private var practiceOptions: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label("Practising the characters that need work", systemImage: "scope")
-                .font(.subheadline)
+    private var needsWorkOptions: some View {
+        let chars = CharacterClass.allCharacters.filter(Set(prefs.needsWork).contains)
+        if chars.isEmpty {
+            Label("Not enough history yet. Once each character has been copied \(HistoryModel.minSamples) times, the ones that need work are practised here.",
+                  systemImage: "info.circle")
+                .font(.callout)
                 .foregroundStyle(.secondary)
-            HStack(spacing: 6) {
-                ForEach(CharacterClass.allCharacters.filter(Set(prefs.practiceSet).contains), id: \.self) { ch in
-                    Text(String(ch))
-                        .font(.system(.body, design: .monospaced, weight: .semibold))
-                        .frame(width: 34, height: 30)
-                        .foregroundStyle(.white)
-                        .background(Color.orange, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .fixedSize(horizontal: false, vertical: true)
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("The characters Insights says need work. They update as you improve.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    ForEach(chars, id: \.self) { ch in
+                        Text(String(ch))
+                            .font(.system(.body, design: .monospaced, weight: .semibold))
+                            .frame(width: 34, height: 30)
+                            .foregroundStyle(.white)
+                            .background(Color.orange, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    }
                 }
             }
+            lengthControl("Group length", variable: prefs.$variableLength, fixed: prefs.$groupLength,
+                          min: prefs.$groupMin, max: prefs.$groupMax, range: Self.groupLengths)
         }
-        lengthControl("Group length", variable: prefs.$variableLength, fixed: prefs.$groupLength,
-                      min: prefs.$groupMin, max: prefs.$groupMax, range: Self.groupLengths)
     }
 
     @ViewBuilder
@@ -234,7 +239,7 @@ struct WhatToCopyCard: View {
         // Reads every source preference, so it changes whenever one of them does.
         _ = (prefs.mode, prefs.variableLength, prefs.groupLength, prefs.groupMin, prefs.groupMax,
              prefs.composition, prefs.enabledCharacters, prefs.useImported)
-        _ = (prefs.wordVariable, prefs.wordLength, prefs.wordMin, prefs.wordMax, prefs.practiceSet)
+        _ = (prefs.wordVariable, prefs.wordLength, prefs.wordMin, prefs.wordMax, prefs.needsWork)
         var rng = SeededRandom(seed: seed)
         let s = TrainerSettings.current()
         if s.usesGroups { return s.groupGenerator.generate(8, using: &rng) }
