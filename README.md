@@ -89,7 +89,7 @@ python3 -m http.server 8768 --directory web     # then open http://localhost:876
 node scripts/web-check.mjs [mode] [items]       # run a short attempt in Node, with timings
 ```
 
-`./scripts/publish-web.sh` builds it and copies it into the G3AJM site (`../welly.github.io/qrq/`), stamped with
+It is published at <https://g3ajm.radio/qrqtrainer/>. `./scripts/publish-web.sh` builds it and copies it into the G3AJM site (`../welly.github.io/qrqtrainer/`), stamped with
 the commit so browsers don't mix new and cached files; then commit and push that repository. `web/qrq.wasm` is
 build output and isn't committed.
 

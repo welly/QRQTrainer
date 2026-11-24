@@ -1,11 +1,11 @@
 #!/bin/bash
-# Copies the web version into the G3AJM site (welly.github.io) as qrq/, stamped with this commit so a
+# Copies the web version into the G3AJM site (welly.github.io) as qrqtrainer/, stamped with this commit so a
 # browser never mixes new and cached files. Builds the wasm first. Doesn't commit or push the site.
 #   ./scripts/publish-web.sh [site folder]   (default: ../welly.github.io)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 SITE="${1:-../welly.github.io}"
-TARGET="$SITE/qrq"
+TARGET="$SITE/qrqtrainer"
 [ -f "$SITE/CNAME" ] || { echo "No site at $SITE" >&2; exit 1; }
 if [ -n "$(git status --porcelain -- Sources web Package.swift)" ]; then
   echo "Commit the changes in Sources/ and web/ first, so the version stamp matches what's published." >&2
@@ -22,4 +22,4 @@ grep -q "app.js?v=$VERSION" "$TARGET/index.html" || { echo "Couldn't stamp index
 # The service worker caches this version's files, and a changed sw.js is how browsers notice an update.
 sed -i '' "s|^const VERSION = 'dev';|const VERSION = '$VERSION';|" "$TARGET/sw.js"
 grep -q "const VERSION = '$VERSION';" "$TARGET/sw.js" || { echo "Couldn't stamp sw.js" >&2; exit 1; }
-echo "Copied web/ ($VERSION) to $TARGET. Commit and push $SITE to publish it at https://$(cat "$SITE/CNAME")/qrq/"
+echo "Copied web/ ($VERSION) to $TARGET. Commit and push $SITE to publish it at https://$(cat "$SITE/CNAME")/qrqtrainer/"
