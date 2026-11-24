@@ -714,7 +714,7 @@ function charRow(s, needsWork) {
     el('span', { class: 'char-badge', style: `background:${accuracyColour(value, 0.22)}` }, s.c, s.isInstant ? el('span', { class: 'bolt' }, '⚡') : null),
     el('div', { class: 'info' },
       el('div', { class: 'top' }, el('span', { class: 'morse' }, morse(s.c)), el('b', { class: 'num', style: 'font-size:15px' }, `${pct(value)} ${s.instantRate != null ? 'instant' : 'correct'}`)),
-      el('div', { class: 'bar' }, el('i', { style: `width:${Math.round(value * 100)}%;background:${accuracyColour(value)}` })),
+      el('div', { class: 'meter' }, el('i', { style: `width:${Math.round(value * 100)}%;background:${accuracyColour(value)}` })),
       el('small', {}, detail)));
 }
 

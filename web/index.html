@@ -225,8 +225,8 @@
   .char-row .info { flex: 1; min-width: 0; }
   .char-row .top { display: flex; justify-content: space-between; gap: 8px; }
   .morse { color: var(--muted); font-family: ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: 0.08em; }
-  .bar { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; margin: 5px 0 3px; }
-  .bar i { display: block; height: 100%; border-radius: 3px; }
+  .meter { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; margin: 5px 0 3px; }
+  .meter i { display: block; height: 100%; border-radius: 3px; }
   .char-row small { color: var(--muted); font-size: 13px; }
   .cells { display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 8px; }
   .cell { border-radius: 10px; padding: 6px 2px; text-align: center; min-height: 54px; border: 1px solid transparent; }
@@ -281,7 +281,7 @@
 <body>
 <header class="bar">
   <span style="width:44px"></span>
-  <h1><img src="icon.png" alt="">QRQ Trainer</h1>
+  <h1><img src="icon.png" alt="" width="22" height="22">QRQ Trainer</h1>
   <button class="icon-btn" id="settingsBtn" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></button>
 </header>
 <main>
