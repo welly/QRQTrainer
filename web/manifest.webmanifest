@@ -1,7 +1,7 @@
 {
   "name": "QRQ Trainer",
   "short_name": "QRQ Trainer",
-  "description": "High-speed Morse copying practice: callsigns sent at real speed, faster each time you copy one right.",
+  "description": "High-speed Morse copying practice: callsigns, codes, words or character groups at real speed, faster each time you copy one right.",
   "lang": "en-GB",
   "start_url": "./",
   "scope": "./",

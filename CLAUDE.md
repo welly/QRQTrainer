@@ -1,6 +1,6 @@
 # QRQ Trainer
 
-High-speed callsign copying trainer (RufzXP style): a Mac app and a web version. See README.md for features.
+High-speed Morse copying trainer (RufzXP style: callsigns, ham codes, words, character groups): a Mac app and a web version. See README.md for features.
 
 ## Layout
 
