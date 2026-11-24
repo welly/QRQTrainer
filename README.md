@@ -146,4 +146,9 @@ Export your history as CSV if you want to share results.
 
 ## Licence
 
-MIT. See [LICENSE](LICENSE).
+Copyright © 2026 Alastair Moore, G3AJM.
+
+QRQ Trainer is free software: you can redistribute it and modify it under the terms of the GNU General
+Public License as published by the Free Software Foundation, either version 3 of the License or
+(at your option) any later version. It comes with no warranty. See [LICENSE](LICENSE) for the
+full text.
