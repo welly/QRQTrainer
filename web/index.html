@@ -270,8 +270,9 @@
   .class-head b { font-size: 17px; }
   .class-head .acts { margin-left: auto; display: flex; gap: 14px; }
   /* Help and About, as in Mock QSO: one column of full-width cards, each point a row divided by a fine line */
-  .help { margin-top: 8px; }
-  .help.in-sheet { margin-top: 10px; }
+  /* Shared by the G3AJM web apps (see Ham Tools/CLAUDE.md): the help and About area below the app starts after a clear break, 40px and a fine line. */
+  .help { margin-top: 40px; padding-top: 8px; border-top: 1px solid var(--line); }
+  .help.in-sheet { margin-top: 10px; padding-top: 0; border-top: 0; }
   .help .group { padding: 0 16px; margin-bottom: 4px; }
   .help h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 18px 6px 8px; font-weight: 600; }
   .help ul { list-style: none; margin: 0; padding: 0; }
