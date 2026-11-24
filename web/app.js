@@ -95,6 +95,9 @@ const DEFAULTS = {
   farnsworth: false, farnsworthPercent: 60, insightsRange: 'last50',
 };
 const settings = { ...DEFAULTS, ...store.get('settings', {}) };
+/// Fastest speed: 100 WPM, CWKit's limit (Morse.maxCPM). Older settings may hold a higher start speed.
+const MAX_CPM = 500;
+settings.startCPM = Math.min(settings.startCPM, MAX_CPM);
 let appearance = store.get('appearance', 'system');
 /// The imported callsign list: { name, text } (one call per line, already cleaned up by the engine).
 let importedList = store.get('list', null);
@@ -432,11 +435,11 @@ function renderReady() {
 
   const speedNumber = el('span', { class: 'big' }, String(speedValue(settings.startCPM)));
   const slider = el('input', {
-    type: 'range', min: 25, max: 600, step: 5, value: settings.startCPM, 'aria-label': fixed ? 'Speed' : 'Start speed',
+    type: 'range', min: 25, max: MAX_CPM, step: 5, value: settings.startCPM, 'aria-label': fixed ? 'Speed' : 'Start speed',
     oninput: (e) => { settings.startCPM = +e.target.value; speedNumber.textContent = String(speedValue(settings.startCPM)); save(); },
     onchange: () => render(),
   });
-  const suggested = best ? Math.max(25, Math.min(600, Math.round(record.peak(best) * 0.8 / 5) * 5)) : null;
+  const suggested = best ? Math.max(25, Math.min(MAX_CPM, Math.round(record.peak(best) * 0.8 / 5) * 5)) : null;
 
   fill($('view'),
     el('h2', { class: 'title' }, 'Ready to copy'),
@@ -452,7 +455,7 @@ function renderReady() {
         el('div', { class: 'speed-line' }, speedNumber, el('span', { class: 'unit' }, unit()),
           el('button', { class: 'btn', type: 'button', 'data-test-tone': 'Test tone', title: 'Hear this speed and your audio settings', onclick: toggleTestTone }, testTonePlaying ? 'Stop' : 'Test tone')),
         slider,
-        el('div', { class: 'range-labels' }, el('span', {}, String(speedValue(25))), el('span', {}, String(speedValue(600)))),
+        el('div', { class: 'range-labels' }, el('span', {}, String(speedValue(25))), el('span', {}, String(speedValue(MAX_CPM)))),
         suggested ? el('button', { class: 'link-btn', type: 'button', onclick: () => set('startCPM', suggested) },
           `Use ${speed(suggested)} (80% of your peak)`) : null,
         settings.farnsworth ? el('p', { class: 'note' }, `Farnsworth spacing: overall ${settings.farnsworthPercent}% of character speed`) : null),

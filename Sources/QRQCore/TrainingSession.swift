@@ -11,7 +11,7 @@ public struct TrainingConfig: Codable, Equatable, Sendable {
     public var minCPM: Double
     public var maxCPM: Double
 
-    public init(count: Int = 50, startCPM: Double = 100, stepPercent: Double = 4, minCPM: Double = 25, maxCPM: Double = 999) {
+    public init(count: Int = 50, startCPM: Double = 100, stepPercent: Double = 4, minCPM: Double = 25, maxCPM: Double = Morse.maxCPM) {
         self.count = count
         self.startCPM = startCPM
         self.stepPercent = stepPercent

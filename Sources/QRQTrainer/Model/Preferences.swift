@@ -1,3 +1,4 @@
+import CWKit
 import Foundation
 import QRQCore
 
@@ -89,7 +90,7 @@ struct TrainerSettings {
         let fixed = d.integer(forKey: words ? Pref.wordLength : Pref.groupLength)
         return TrainerSettings(
             count: max(1, d.integer(forKey: Pref.count)),
-            startCPM: d.double(forKey: Pref.startCPM),
+            startCPM: min(d.double(forKey: Pref.startCPM), Morse.maxCPM),
             stepPercent: d.bool(forKey: Pref.fixedSpeed) ? 0 : d.double(forKey: Pref.stepPercent),
             pauseMs: d.double(forKey: Pref.pauseMs),
             pitch: d.double(forKey: Pref.pitch),
@@ -170,14 +171,14 @@ struct TrainerSettings {
     }
 
     var config: TrainingConfig {
-        // Speed adapts within TrainingConfig's default limits (25–999 CPM).
+        // Speed adapts within TrainingConfig's default limits (25–500 CPM, 5–100 WPM).
         TrainingConfig(count: count, startCPM: startCPM, stepPercent: stepPercent)
     }
 
     func tone(sampleRate: Double) -> ToneSettings {
         var frequency = pitch
         if randomPitch && pitchSpread > 0 { frequency += Double.random(in: -pitchSpread...pitchSpread) }
-        return ToneSettings(frequency: max(200, frequency), amplitude: volume, riseTime: riseMs / 1000, sampleRate: sampleRate)
+        return ToneSettings(frequency: max(200, frequency), riseTime: riseMs / 1000, amplitude: volume, sampleRate: sampleRate)
     }
 }
 

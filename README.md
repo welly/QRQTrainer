@@ -15,7 +15,7 @@ Built with SwiftUI, Swift Charts and AVAudioEngine. Requires **macOS 14 Sonoma o
 ## Features
 
 - **Adaptive speed.** Every correct copy raises the speed by a configurable percentage (4% by default); every miss lowers it.
-- **Real-speed Morse.** Each callsign is rendered sample-accurately with raised-cosine keying. It stays clean well beyond 600 CPM (120 WPM), with no element jitter.
+- **Real-speed Morse.** Each callsign is rendered sample-accurately with raised-cosine keying. It stays clean up to 500 CPM (100 WPM), with no element jitter.
 - **Scoring.** Points grow with the callsign's Morse length and the speed it was sent at. Each wrong character costs points, a slow answer costs a little, and a repeated callsign (F6 / ⌘R) scores nothing. Results show the maximum and gained points and the response time for each item.
 - **Instant feedback.** You see what was sent next to what you typed, with each mistake highlighted.
 - **Results.** A per-attempt speed chart, a full callsign table, and personal-best detection.

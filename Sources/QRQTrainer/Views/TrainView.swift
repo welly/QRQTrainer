@@ -77,12 +77,12 @@ private struct ReadyView: View {
                                     .buttonStyle(.bordered)
                                     .help("Hear this speed and your audio settings")
                             }
-                            Slider(value: snapped($startCPM, to: 5), in: 25...600) {
+                            Slider(value: snapped($startCPM, to: 5), in: 25...Morse.maxCPM) {
                                 Text("Start speed")
                             } minimumValueLabel: {
                                 Text("\(SpeedFormat.value(25, wpm: showWPM))").font(.caption)
                             } maximumValueLabel: {
-                                Text("\(SpeedFormat.value(600, wpm: showWPM))").font(.caption)
+                                Text("\(SpeedFormat.value(Morse.maxCPM, wpm: showWPM))").font(.caption)
                             }
                             .labelsHidden()
                             if let best {
@@ -164,7 +164,7 @@ private struct ReadyView: View {
     }
 
     private func suggestedStart(_ best: AttemptRecord) -> Double {
-        max(25, min(600, (best.peakCPM * 0.8 / 5).rounded() * 5))
+        max(25, min(Morse.maxCPM, (best.peakCPM * 0.8 / 5).rounded() * 5))
     }
 
     private func tip(_ symbol: String, _ title: String, _ text: String) -> some View {

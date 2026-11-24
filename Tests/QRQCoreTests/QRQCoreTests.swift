@@ -1,3 +1,4 @@
+import CWKit
 import Foundation
 import Testing
 @testable import QRQCore
@@ -10,15 +11,22 @@ private func close(_ a: Double, _ b: Double, _ tolerance: Double = 1e-9) -> Bool
         #expect(Morse.units(of: "PARIS") + 7 == 50)
     }
 
-    @Test func keyingOfA() {
-        #expect(Morse.keying(for: "A") == [
-            KeyElement(isOn: true, units: 1), KeyElement(isOn: false, units: 1), KeyElement(isOn: true, units: 3),
-        ])
+    @Test func characterGapAndNoTrailingSilence() {
+        // E, a 3-unit gap, E; the trailing space adds nothing.
+        #expect(Morse.units(of: "EE ") == 5)
     }
 
-    @Test func characterGapAndNoTrailingSilence() {
-        let k = Morse.keying(for: "EE ")
-        #expect(k == [KeyElement(isOn: true, units: 1), KeyElement(isOn: false, units: 3), KeyElement(isOn: true, units: 1)])
+    @Test func tableIsCWKitsCodesForQRQTrainersCharacters() {
+        #expect(Morse.code(for: "a") == ".-")
+        #expect(Morse.code(for: "!") == nil)  // CWKit has it, QRQ Trainer doesn't send it
+        for (ch, code) in Morse.table { #expect(MorseAlphabet.patterns[ch] == code, "\(ch)") }
+    }
+
+    @Test func fastestSpeedIsOneHundredWPM() {
+        #expect(Morse.maxCPM == 500)
+        #expect(TrainingConfig().maxCPM == 500)
+        // Nothing renders faster: 600 CPM is sent at 500.
+        #expect(close(MorseSynth.duration(of: "K1AB", cpm: 600), MorseSynth.duration(of: "K1AB", cpm: 500)))
     }
 
     @Test func ditLength() {
@@ -27,7 +35,7 @@ private func close(_ a: Double, _ b: Double, _ tolerance: Double = 1e-9) -> Bool
     }
 
     @Test func renderLengthAndRange() {
-        let tone = ToneSettings(frequency: 700, amplitude: 0.5, riseTime: 0.005, sampleRate: 8000)
+        let tone = ToneSettings(frequency: 700, riseTime: 0.005, amplitude: 0.5, sampleRate: 8000)
         let s = MorseSynth.render(text: "DL1ABC", cpm: 300, tone: tone, leadIn: 0.05, tail: 0.05)
         let expected = MorseSynth.duration(of: "DL1ABC", cpm: 300, leadIn: 0.05, tail: 0.05) * 8000
         #expect(close(Double(s.count), expected, 1))

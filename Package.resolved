@@ -1,0 +1,14 @@
+{
+  "pins" : [
+    {
+      "identity" : "cw-kit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/welly/cw-kit.git",
+      "state" : {
+        "revision" : "ff935b5e7b3c065320f45a7257f96636ce6846da",
+        "version" : "1.0.0"
+      }
+    }
+  ],
+  "version" : 2
+}

@@ -1,6 +1,7 @@
 // The page's settings, read from the JSON it sends. The same keys and defaults as the Mac app's preferences
 // (`Pref` in Sources/QRQTrainer/Model/Preferences.swift), and the same rules as its `TrainerSettings`.
 // Keep the two in step.
+import CWKit
 import QRQCore
 
 struct WebSettings {
@@ -37,7 +38,7 @@ struct WebSettings {
 
         mode = json["trainerMode"]?.string.flatMap(TrainerMode.init) ?? .callsigns
         count = max(1, int("count", 50))
-        startCPM = double("startCPM", 100)
+        startCPM = min(double("startCPM", 100), Morse.maxCPM)
         stepPercent = bool("fixedSpeed", false) ? 0 : double("stepPercent", 4)
         pitch = double("pitch", 600)
         randomPitch = bool("randomPitch", false)
@@ -86,7 +87,7 @@ struct WebSettings {
     func tone(sampleRate: Double) -> ToneSettings {
         var frequency = pitch
         if randomPitch && pitchSpread > 0 { frequency += Double.random(in: -pitchSpread...pitchSpread) }
-        return ToneSettings(frequency: max(200, frequency), amplitude: volume, riseTime: riseMs / 1000, sampleRate: sampleRate)
+        return ToneSettings(frequency: max(200, frequency), riseTime: riseMs / 1000, amplitude: volume, sampleRate: sampleRate)
     }
 
     /// Name of what an attempt sends. Attempts are only compared (best score, progress) within one source.
