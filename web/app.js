@@ -432,13 +432,7 @@ function renderReady() {
       el('button', { class: 'btn primary', type: 'button', disabled: !info.canStart, onclick: start },
         svg('svg', { viewBox: '0 0 24 24', fill: 'currentColor', width: 18, height: 18 }, svg('path', { d: 'M8 5v14l11-7z' })), 'Start attempt'),
       el('span', { class: 'muted desk', style: 'font-size:14px' }, el('kbd', {}, '⌘'), ' ', el('kbd', {}, '↩'))),
-    el('div', { class: 'card' },
-      el('div', { class: 'tips' },
-        el('div', { class: 'tip' }, el('b', {}, 'Copy in your head'), el('span', {}, `Don’t write while listening. Hear the whole ${item}, then type it.`)),
-        el('div', { class: 'tip' }, el('b', {}, 'Repeat with F6'), el('span', {}, `Plays it again, but that ${item} scores nothing.`)),
-        fixed ? el('div', { class: 'tip' }, el('b', {}, 'Speed stays fixed'), el('span', {}, `Every ${item} is sent at the speed you chose.`))
-          : el('div', { class: 'tip' }, el('b', {}, 'Speed adapts'), el('span', {}, 'Every correct copy is faster, every miss is slower.')))),
-    el('div', { class: 'card', style: 'background:none;box-shadow:none;padding:0' }, $('creditsTemplate').content.cloneNode(true)),
+    el('section', { class: 'help' }, $('helpTemplate').content.cloneNode(true), $('aboutTemplate').content.cloneNode(true)),
   );
 }
 
@@ -927,7 +921,7 @@ function renderSettings() {
     el('div', { class: 'section-title' }, 'Appearance'),
     el('div', { class: 'group' }, selectField('Appearance', appearance, [['system', 'Same as the device'], ['light', 'Light'], ['dark', 'Dark']],
       (val) => { appearance = val; store.set('appearance', val); applyAppearance(); })),
-    $('creditsTemplate').content.cloneNode(true),
+    el('div', { class: 'help in-sheet' }, $('aboutTemplate').content.cloneNode(true)),
     el('input', { type: 'file', id: 'listFile', accept: '.scp,.txt,text/plain', hidden: true, onchange: importList }));
   f.scrollTop = keepScroll;
 }
