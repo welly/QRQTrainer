@@ -7,7 +7,7 @@ just pure speed work.
 
 Built with SwiftUI, Swift Charts and AVAudioEngine. Requires **macOS 14 Sonoma or later** and runs natively on Apple Silicon and Intel.
 
-**[Download the latest release](https://github.com/welly/QRQTrainer/releases/latest/download/QRQ-Trainer.dmg)** · [Website](https://welly.github.io/QRQTrainer/)
+**[Download the latest release](https://github.com/welly/QRQTrainer/releases/latest/download/QRQ-Trainer.dmg)** · [Use it in your browser](https://g3ajm.radio/qrqtrainer/)
 
 > The app isn't signed with an Apple Developer ID yet. On first launch, open it once, then go to
 > **System Settings → Privacy & Security → Open Anyway**.
@@ -136,8 +136,8 @@ git tag v1.2.0 && git push origin v1.2.0
 
 To package locally after `./scripts/build-app.sh`, run `./scripts/package.sh`; the files go in `dist/`.
 
-The download page is `docs/index.html`, served by GitHub Pages from the `main` branch's `/docs` folder. Changes go live
-a minute or so after they are pushed.
+The Mac app is listed on the G3AJM page (`../welly.github.io/index.html`, <https://g3ajm.radio/>). `docs/` only holds a
+redirect from the old website (g3ajm.radio/QRQTrainer/, still served by GitHub Pages from `/docs`) to that page.
 
 ## Not included
 
