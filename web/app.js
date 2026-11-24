@@ -12,6 +12,37 @@ if (VERSION && !DEBUG && 'serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js', { scope: './' }).catch(() => { });
 }
 
+// MARK: Usage counts (GoatCounter, anonymous, no cookies, nothing stored on the device)
+
+// As in Mock QSO: sent straight to GoatCounter's counting address rather than through its count.js, which always
+// adds the page's ?… part. Only the fields below are sent. Not counted on localhost or with ?debug (which logs
+// instead); visit the page with #nocount once to stop counting your own visits (#count to start again).
+const COUNTER = 'https://g3ajm.goatcounter.com/count';
+const counting = (() => {
+  try {
+    if (location.hash === '#nocount') localStorage.setItem('qrqtrainer.nocount', '1');
+    if (location.hash === '#count') localStorage.removeItem('qrqtrainer.nocount');
+    if (localStorage.getItem('qrqtrainer.nocount') === '1') return false;
+  } catch { }
+  return !/^(localhost|127\.|\[::1\])/.test(location.hostname) && location.protocol === 'https:';
+})();
+function count(fields) {
+  const q = new URLSearchParams({ ...fields, s: String(screen.width), rnd: Math.random().toString(36).slice(2) });
+  if (DEBUG) { (window.qrqtrainerCounts ??= []).push(Object.fromEntries(q)); console.info('count', Object.fromEntries(q)); return; }
+  if (!counting) return;
+  try { fetch(`${COUNTER}?${q}`, { mode: 'no-cors', credentials: 'omit', keepalive: true, referrerPolicy: 'no-referrer' }); } catch { }
+}
+/// A visit: the page's path and title, and where the visitor came from if it was another site.
+function countVisit() {
+  let from = '';
+  try { if (document.referrer && new URL(document.referrer).origin !== location.origin) from = new URL(document.referrer).origin; } catch { }
+  count({ p: location.pathname, t: 'QRQ Trainer', ...(from ? { r: from } : {}) });
+}
+/// Counts an event, e.g. "attempt/callsigns". Only fixed labels are sent: never a callsign, an answer or a list name.
+function track(event) {
+  count({ p: `qrqtrainer/${event}`, t: event, e: 'true' });
+}
+
 const $ = (id) => document.getElementById(id);
 const el = (tag, props = {}, ...children) => {
   const node = document.createElement(tag);
@@ -254,6 +285,10 @@ function start() {
   });
   render();
   schedule(0.8);
+  const band = Math.floor(settings.startCPM / 50) * 50;
+  track(`attempt/${settings.trainerMode}${settings.trainerMode === 'callsigns' && settings.useImported && importedCount ? ' (imported list)' : ''}`);
+  track(`speed/${band}-${band + 49} cpm${settings.fixedSpeed ? ' fixed' : ''}${settings.farnsworth ? ' farnsworth' : ''}`);
+  track(`length/${settings.count}`);
 }
 
 function schedule(seconds) {
@@ -298,6 +333,7 @@ function submit(at = performance.now()) {
 }
 
 function abort() {
+  if (trainer.phase === 'running') track('ended early');
   clearTimeout(trainer.timer);
   stopSound();
   engine?.call('end');
@@ -318,6 +354,7 @@ function finish() {
   saveHistory();
   engine.call('end');
   trainer.finished = rec;
+  track(`finished/${settings.trainerMode}`);
   trainer.phase = 'finished';
   render();
 }
@@ -345,6 +382,7 @@ $('tabs').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-view]');
   if (!b) return;
   view = b.dataset.view;
+  if (view !== 'train') track(`view/${view}`);
   if (view === 'train' && trainer.phase === 'finished') trainer.phase = 'idle';
   stopTestTone();
   render();
@@ -678,7 +716,7 @@ function renderInsights() {
       el('div', { class: 'card' },
         el('div', { class: 'card-head' }, el('h3', { style: 'color:var(--warn)' }, '⚠ Needs work'),
           a.weakest.length ? el('button', { class: 'btn', type: 'button', title: 'Switch Train to Needs work mode, which sends groups of these characters',
-            onclick: () => { set('trainerMode', 'needsWork', { rerender: false }); view = 'train'; render(); window.scrollTo(0, 0); } }, '▶ Practise these') : null),
+            onclick: () => { track('insights/practise these'); set('trainerMode', 'needsWork', { rerender: false }); view = 'train'; render(); window.scrollTo(0, 0); } }, '▶ Practise these') : null),
         a.weakest.length ? a.weakest.map((s) => charRow(s, true)) : notEnough()),
       el('div', { class: 'card' },
         el('div', { class: 'card-head' }, el('h3', { style: 'color:var(--good)', title: 'Characters you copy correctly and answer quickly, without having to work them out' }, '⚡ Instant recognition')),
@@ -801,6 +839,7 @@ $('deleteAttempt').addEventListener('click', () => {
 
 /// The Mac app's CSV columns (HistoryStore.csv).
 function exportCSV() {
+  track('history/export csv');
   const lines = ['date,source,callsigns,score,correct,peak_cpm,peak_wpm,average_cpm,start_cpm,average_response_ms'];
   for (const r of [...history].sort(byDate)) {
     const peak = record.peak(r);
@@ -956,6 +995,7 @@ async function importList(e) {
   }
   importedList = { name: file.name, text: answer.text };
   importedCount = answer.count;
+  track('callsigns/imported a list');
   if (!store.set('list', importedList)) toast('The list is too big to keep in this browser; it will be used until you close the page.');
   settings.useImported = true;
   save();
@@ -998,6 +1038,7 @@ document.addEventListener('keydown', (e) => {
 
 // MARK: Start-up
 
+countVisit();
 engineReady.then((e) => {
   engine = e;
   morseCodes = engine.call('codes');
