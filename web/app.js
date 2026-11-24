@@ -57,7 +57,7 @@ const el = (tag, props = {}, ...children) => {
   for (const c of children.flat(Infinity)) if (c != null && c !== false) node.append(c);
   return node;
 };
-const fill = (node, ...children) => node.replaceChildren(...children.flat().filter((c) => c != null && c !== false));
+const fill = (node, ...children) => node.replaceChildren(...children.flat(Infinity).filter((c) => c != null && c !== false));
 const svg = (tag, attrs = {}, ...children) => {
   const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
   for (const [k, val] of Object.entries(attrs)) if (val != null) node.setAttribute(k, val);
