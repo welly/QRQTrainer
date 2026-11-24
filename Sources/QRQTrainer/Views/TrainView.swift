@@ -32,8 +32,8 @@ private struct ReadyView: View {
     var body: some View {
         let source = trainer.sourceName()
         let item = prefs.itemName
-        let attempts = history.records(source: source)
-        let best = history.best(source: source)
+        let attempts = history.records(source: source, count: count)
+        let best = history.best(source: source, count: count)
 
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -113,14 +113,15 @@ private struct ReadyView: View {
                                              : count > 50 ? "Long attempts build stamina." : "Shorter attempts are good for warming up.")
                                 .font(.callout)
                                 .foregroundStyle(.secondary)
-                            Divider()
-                            Label(source, systemImage: prefs.symbol)
-                                .font(.callout)
-                                .lineLimit(2)
                         }
                     }
                     .frame(maxWidth: 320)
                 }
+
+                (Text("Your scores for: ").foregroundStyle(.secondary) + Text(trainer.scoresCaption()).fontWeight(.medium))
+                    .font(.callout)
+                    .padding(.bottom, -12)
+                    .help("Best score, peak speed and attempts count only attempts of this kind and length")
 
                 HStack(spacing: 16) {
                     StatTile(title: "Best score", value: best.map { "\($0.score)" } ?? "—",

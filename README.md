@@ -126,7 +126,9 @@ from the start of the first tone (allowing for output latency) to pressing Retur
 ended counts against the score, so long or slow items aren't penalised for their length: `ms` is the response time minus
 the sound's length, never below 0. Every 1000 ms of it costs 3% of the points, and a correct copy always keeps at least half. A repeated item scores 0.
 Attempts recorded before response timing was added have no response time and weren't penalised for it.
-Scores are only comparable between attempts that use the same callsign source and attempt length (50 is the classic).
+Best score, peak speed and the attempt count compare only attempts of the same kind (mode, lengths, characters,
+Farnsworth, fixed speed, callsign source) and the same attempt length (50 is the classic); the Train screen names them above
+the score tiles.
 
 ## Releasing
 

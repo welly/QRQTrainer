@@ -138,6 +138,18 @@ struct TrainerSettings {
 
     /// Name of what the next attempt will send. Attempts are only compared (best score, progress) within one source,
     /// so it includes everything that changes difficulty: mode, group length, composition and a custom character set.
+    /// The kind of practice and attempt length in plain words, for the caption above the score tiles.
+    @MainActor func scoresCaption(library: CallsignLibrary) -> String {
+        let g = groupGenerator
+        let imported = mode == .callsigns && useImported && !library.calls.isEmpty
+        return PracticeDescription.caption(
+            mode: mode, minLength: usesGroups ? g.minLength : minLength, maxLength: usesGroups ? g.maxLength : maxLength,
+            separated: mode.classes.count > 1 && composition == .separated,
+            customSet: mode.usesGroups && !Set(mode.classes.flatMap(\.characters)).isSubset(of: enabledCharacters),
+            wordSet: wordSet, importedListName: imported ? (library.name ?? "your list") : nil,
+            farnsworth: farnsworth, fixedSpeed: stepPercent == 0, count: count)
+    }
+
     @MainActor func sourceName(library: CallsignLibrary) -> String {
         var name = baseSourceName(library: library)
         if farnsworth < 1 { name += " · Farnsworth \(Int((farnsworth * 100).rounded()))%" }

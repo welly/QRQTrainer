@@ -50,12 +50,14 @@ final class HistoryModel {
 
     var sources: [String] { Array(Set(records.map(\.source))).sorted() }
 
-    func records(source: String?) -> [AttemptRecord] {
-        records.filter { source == nil || $0.source == source }.sorted { $0.date < $1.date }
+    /// Attempts of one kind and length, oldest first. Best scores are only compared between these: a 10-item attempt
+    /// can't be compared with a 50-item one.
+    func records(source: String, count: Int) -> [AttemptRecord] {
+        records.filter { $0.source == source && $0.config.count == count }.sorted { $0.date < $1.date }
     }
 
-    func best(source: String) -> AttemptRecord? {
-        records.filter { $0.source == source }.max { $0.score < $1.score }
+    func best(source: String, count: Int) -> AttemptRecord? {
+        records(source: source, count: count).max { $0.score < $1.score }
     }
 
     func add(_ record: AttemptRecord) {
@@ -162,6 +164,9 @@ final class TrainerModel {
     /// Name of what the next attempt will send, from the current preferences. Scores are compared within a source.
     func sourceName() -> String { TrainerSettings.current().sourceName(library: library) }
 
+    /// The kind of practice and attempt length in plain words, for the caption above the score tiles.
+    func scoresCaption() -> String { TrainerSettings.current().scoresCaption(library: library) }
+
     /// What one item of the running (or next) attempt is called: "callsign", "group", "word" or "code".
     var itemName: String { (phase == .idle ? TrainerSettings.current() : settings).itemName }
 
@@ -226,7 +231,7 @@ final class TrainerModel {
 
         session = TrainingSession(config: settings.config, callsigns: calls,
                                   bringBackMisses: settings.mode == .words && settings.bringBackMisses)
-        previousBest = history.best(source: source)?.score
+        previousBest = history.best(source: source, count: settings.count)?.score
         lastResult = nil
         finishedRecord = nil
         entry = ""

@@ -168,10 +168,12 @@ const record = {
   },
 };
 const byDate = (a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
-const recordsFor = (source) => history.filter((r) => r.source === source).sort(byDate);
-function bestFor(source) {
+/// Attempts of one kind and length, oldest first. Best scores are only compared between these: a 10-item attempt can't
+/// be compared with a 50-item one.
+const recordsFor = (source, count) => history.filter((r) => r.source === source && r.config?.count === count).sort(byDate);
+function bestFor(source, count) {
   let best = null;
-  for (const r of history) if (r.source === source && (!best || record.score(r) > record.score(best))) best = r;
+  for (const r of recordsFor(source, count)) if (!best || record.score(r) > record.score(best)) best = r;
   return best;
 }
 function rangeRecords() {
@@ -284,7 +286,7 @@ function start() {
   Object.assign(trainer, {
     phase: 'running', state, source: state.source, itemName: info.itemName, results: [], last: null,
     playing: false, awaiting: false, firstKeyAt: null, finished: null,
-    previousBest: bestFor(state.source) ? record.score(bestFor(state.source)) : null,
+    previousBest: bestFor(state.source, state.config.count) ? record.score(bestFor(state.source, state.config.count)) : null,
   });
   render();
   schedule(0.8);
@@ -428,8 +430,8 @@ function renderReady() {
   const info = describe();
   const item = info.itemName;
   const source = info.source;
-  const attempts = recordsFor(source);
-  const best = bestFor(source);
+  const attempts = recordsFor(source, settings.count);
+  const best = bestFor(source, settings.count);
   const peak = attempts.length ? Math.max(...attempts.map(record.peak)) : null;
   const fixed = settings.fixedSpeed;
 
@@ -464,15 +466,16 @@ function renderReady() {
         segmented([[10, '10'], [25, '25'], [50, '50'], [100, '100']], settings.count, (val) => set('count', val)),
         el('p', { class: 'note' }, settings.count === 50 ? '50 is the classic attempt length, so scores stay comparable.'
           : settings.count > 50 ? 'Long attempts build stamina.' : 'Shorter attempts are good for warming up.'),
-        el('p', { class: 'note', style: 'border-top:1px solid var(--line);padding-top:10px' }, el('b', { style: 'color:var(--text)' }, source)))),
+        )),
+    el('p', { class: 'note', style: 'margin:0 0 10px', title: 'Best score, peak speed and attempts count only attempts of this kind and length' },
+      'Your scores for: ', el('b', { style: 'color:var(--text)' }, info.caption)),
     el('div', { class: 'tiles' },
       tile('Best score', best ? String(record.score(best)) : '—', best ? utc(best.date) : null, 'var(--gold)'),
       tile('Peak speed', peak ? speed(peak) : '—', null, 'var(--warn)'),
       tile('Attempts', String(attempts.length), attempts.length ? `Last: ${record.score(attempts.at(-1))} points` : null, 'var(--accent)')),
     el('div', { class: 'start-row' },
       el('button', { class: 'btn primary', type: 'button', disabled: !info.canStart, onclick: start },
-        svg('svg', { viewBox: '0 0 24 24', fill: 'currentColor', width: 18, height: 18 }, svg('path', { d: 'M8 5v14l11-7z' })), 'Start attempt'),
-      el('span', { class: 'muted desk', style: 'font-size:14px' }, el('kbd', {}, '⌘'), ' ', el('kbd', {}, '↩'))),
+        svg('svg', { viewBox: '0 0 24 24', fill: 'currentColor', width: 18, height: 18 }, svg('path', { d: 'M8 5v14l11-7z' })), 'Start attempt')),
     el('section', { class: 'help' }, $('helpTemplate').content.cloneNode(true), $('aboutTemplate').content.cloneNode(true)),
   );
 }

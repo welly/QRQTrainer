@@ -405,3 +405,24 @@ private func close(_ a: Double, _ b: Double, _ tolerance: Double = 1e-9) -> Bool
         #expect(!a.stat(for: "K").isInstant)
     }
 }
+
+@Suite struct PracticeDescriptionTests {
+    private func caption(_ mode: TrainerMode, _ lo: Int = 5, _ hi: Int = 5, separated: Bool = false, custom: Bool = false,
+                         words: WordSet = .all, list: String? = nil, farnsworth: Double = 1, fixed: Bool = false, count: Int = 50) -> String {
+        PracticeDescription.caption(mode: mode, minLength: lo, maxLength: hi, separated: separated, customSet: custom,
+                                    wordSet: words, importedListName: list, farnsworth: farnsworth, fixedSpeed: fixed, count: count)
+    }
+
+    @Test func plainWords() {
+        #expect(caption(.letters, 1, 1, farnsworth: 0.6, fixed: true, count: 10)
+                == "Letters · groups of 1 · Farnsworth 60% · fixed speed · 10 per attempt")
+        #expect(caption(.lettersFigures, 3, 7, separated: true, custom: true)
+                == "Letters & numbers · groups of 3–7 · one kind per group · your own characters · 50 per attempt")
+        #expect(caption(.callsigns) == "Generated callsigns · 50 per attempt")
+        #expect(caption(.callsigns, list: "MASTER.SCP") == "Callsigns from MASTER.SCP · 50 per attempt")
+        #expect(caption(.hamCodes, count: 25) == "Ham codes · 25 per attempt")
+        #expect(caption(.words, 1, 12, words: .top100) == "Words · Top 100 · 50 per attempt")
+        #expect(caption(.words, 3, 7) == "Words · 3–7 letters · 50 per attempt")
+        #expect(caption(.needsWork, 4, 4) == "Needs work · groups of 4 · 50 per attempt")
+    }
+}

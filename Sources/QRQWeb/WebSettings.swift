@@ -90,6 +90,18 @@ struct WebSettings {
         return ToneSettings(frequency: max(200, frequency), riseTime: riseMs / 1000, amplitude: volume, sampleRate: sampleRate)
     }
 
+    /// The kind of practice and attempt length in plain words, for the caption above the score tiles.
+    func caption(importedCount: Int) -> String {
+        let g = groupGenerator
+        let imported = mode == .callsigns && useImported && importedCount > 0
+        return PracticeDescription.caption(
+            mode: mode, minLength: usesGroups ? g.minLength : minLength, maxLength: usesGroups ? g.maxLength : maxLength,
+            separated: mode.classes.count > 1 && composition == .separated,
+            customSet: mode.usesGroups && !Set(mode.classes.flatMap(\.characters)).isSubset(of: enabledCharacters),
+            wordSet: wordSet, importedListName: imported ? (listName.isEmpty ? "your list" : listName) : nil,
+            farnsworth: farnsworth, fixedSpeed: stepPercent == 0, count: count)
+    }
+
     /// Name of what an attempt sends. Attempts are only compared (best score, progress) within one source.
     func sourceName(importedCount: Int) -> String {
         var name = baseSourceName(importedCount: importedCount)

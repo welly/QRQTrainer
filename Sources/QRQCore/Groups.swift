@@ -241,3 +241,35 @@ public enum WordSet: String, CaseIterable, Codable, Sendable, Identifiable {
         }
     }
 }
+
+/// The kind of practice in plain words, for the caption above the score tiles: "Letters · groups of 5 · Farnsworth 60% ·
+/// 50 per attempt". Best scores are compared between attempts of the same kind and length. Unlike the stored source
+/// name (`sourceName`, which must not change, or past attempts stop matching), this is only for display.
+public enum PracticeDescription {
+    public static func caption(mode: TrainerMode, minLength: Int, maxLength: Int, separated: Bool, customSet: Bool,
+                               wordSet: WordSet, importedListName: String?, farnsworth: Double, fixedSpeed: Bool,
+                               count: Int) -> String {
+        let length = minLength == maxLength ? "\(minLength)" : "\(minLength)–\(maxLength)"
+        var parts: [String]
+        switch mode {
+        case .needsWork:
+            parts = [mode.title, "groups of \(length)"]
+        case .callsigns:
+            parts = [importedListName.map { "Callsigns from \($0)" } ?? "Generated callsigns"]
+        case .hamCodes:
+            parts = [mode.title]
+        case .words:
+            parts = [mode.title]
+            if wordSet != .all { parts.append(wordSet.title) }
+            if minLength > Words.lengths.lowerBound || maxLength < Words.lengths.upperBound { parts.append("\(length) letters") }
+        default:
+            parts = [mode.title, "groups of \(length)"]
+            if separated { parts.append("one kind per group") }
+            if customSet { parts.append("your own characters") }
+        }
+        if farnsworth < 1 { parts.append("Farnsworth \(Int((farnsworth * 100).rounded()))%") }
+        if fixedSpeed { parts.append("fixed speed") }
+        parts.append("\(count) per attempt")
+        return parts.joined(separator: " · ")
+    }
+}

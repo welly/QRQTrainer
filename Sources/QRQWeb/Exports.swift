@@ -193,6 +193,7 @@ private func describe(_ s: WebSettings, seed: UInt64) -> JSON {
     var generated = SeededRandom(seed: seed &+ 1)
     return .object([
         ("source", .string(s.sourceName(importedCount: importedCalls.count))),
+        ("caption", .string(s.caption(importedCount: importedCalls.count))),
         ("itemName", .string(s.mode.itemName)),
         ("canStart", .bool(canStart)),
         ("examples", .array(examples.map(JSON.string))),
