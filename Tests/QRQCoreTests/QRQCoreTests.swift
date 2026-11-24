@@ -68,6 +68,29 @@ private func close(_ a: Double, _ b: Double, _ tolerance: Double = 1e-9) -> Bool
         #expect(Scoring.points(sent: "DL1ABC", received: "DL1ABC", cpm: 200, repeated: true) == 0)
         #expect(Scoring.points(sent: "DL1ABC", received: "DL1ABC", cpm: 400, repeated: false) > full)
     }
+
+    @Test func eachErrorCostsItsShareOfTheItem() {
+        // 1 − errors / length: a five-character group keeps 100 / 80 / 60 / 40 / 20 / 0%.
+        let max = Double(Scoring.maxPoints(sent: "KQ7XR", cpm: 500))
+        for (received, share) in [("KQ7XR", 1.0), ("KQ7XA", 0.8), ("KQ7AA", 0.6), ("KQAAA", 0.4), ("KAAAA", 0.2), ("AAAAA", 0.0), ("", 0.0)] {
+            let points = Scoring.points(sent: "KQ7XR", received: received, cpm: 500, repeated: false)
+            #expect(points == Int((max * share).rounded()), "\(received)")
+        }
+        // A two-character item with one error keeps half; it used to score nothing.
+        #expect(Scoring.points(sent: "TU", received: "TA", cpm: 100, repeated: false)
+                == Int((Double(Scoring.maxPoints(sent: "TU", cpm: 100)) / 2).rounded()))
+        // More errors than characters (extra characters typed) can't go below nothing.
+        #expect(Scoring.points(sent: "K", received: "XYZ", cpm: 100, repeated: false) == 0)
+    }
+
+    @Test func anyErrorIsStillAMiss() {
+        var s = TrainingSession(config: TrainingConfig(count: 2, startCPM: 100, stepPercent: 10), callsigns: ["DL1ABC", "K1AB"])
+        let r = s.submit("DL1ABX")
+        #expect(r?.isCorrect == false)
+        #expect((r?.points ?? 0) > 0)
+        #expect(s.currentCPM == 90)  // the speed still drops
+        #expect(s.correctCount == 0)
+    }
 }
 
 @Suite struct SessionTests {

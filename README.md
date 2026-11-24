@@ -115,10 +115,13 @@ Data is stored in `~/Library/Application Support/QRQTrainer/`.
 
 ```
 max points = morseUnits(item) × CPM / 100
-points     = max points × max(0, 1 − 2 × errors / length) × max(0.5, 1 − 0.03 × ms / 1000)
+points     = max points × max(0, 1 − errors / length) × max(0.5, 1 − 0.03 × ms / 1000)
 ```
 
-`errors` is the edit distance between what was sent and what you typed. The response time is measured, as in RufzXP,
+`errors` is the edit distance between what was sent and what you typed, so each wrong, missing or extra character
+costs its share of the item (a five-character group keeps 80% of its points with one error). Any error still counts as a
+miss: the speed drops, and it isn't counted as correct. Before 2026-11-24 each error cost twice that (2 / length);
+attempts from then keep the points they scored. The response time is measured, as in RufzXP,
 from the start of the first tone (allowing for output latency) to pressing Return. Only the part after the sound has
 ended counts against the score, so long or slow items aren't penalised for their length: `ms` is the response time minus
 the sound's length, never below 0. Every 1000 ms of it costs 3% of the points, and a correct copy always keeps at least half. A repeated item scores 0.

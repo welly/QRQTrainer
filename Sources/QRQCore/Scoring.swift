@@ -82,12 +82,17 @@ public enum Scoring {
 
     /// Points for one item.
     ///
-    /// Each wrong character costs a share of the maximum, a slow response costs a little more (`responseFactor`),
-    /// and a repeated item scores nothing. `responseTime` is nil for attempts recorded before response timing.
+    /// Each wrong character costs its share of the maximum (1 / length: a five-character group keeps 80% with one
+    /// error, 60% with two), a slow response costs a little more (`responseFactor`), and a repeated item scores
+    /// nothing. Any error still counts as a miss for the speed and the correct count (`CallResult.isCorrect`).
+    /// `responseTime` is nil for attempts recorded before response timing.
+    ///
+    /// Until 2026-11-24 (QRQ Trainer 1.6.0 and the web version before then) each error cost 2 / length. Points are
+    /// stored when an item is answered, so older attempts keep the points they scored.
     public static func points(sent: String, received: String, cpm: Double, repeated: Bool, responseTime: Double? = nil) -> Int {
         guard !repeated else { return 0 }
         let errors = editDistance(sent, received)
-        let accuracy = max(0, 1 - 2 * Double(errors) / Double(max(sent.count, 1)))
+        let accuracy = max(0, 1 - Double(errors) / Double(max(sent.count, 1)))
         let base = Double(Morse.units(of: sent)) * cpm / 100
         return Int((base * accuracy * responseFactor(seconds: responseTime)).rounded())
     }
