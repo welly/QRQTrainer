@@ -13,6 +13,8 @@ let package = Package(
         .target(name: "QRQCore"),
         // The macOS SwiftUI application.
         .executableTarget(name: "QRQTrainer", dependencies: ["QRQCore"]),
+        // The web version: QRQCore compiled to WebAssembly and called from web/. See scripts/build-web.sh.
+        .executableTarget(name: "QRQWeb", dependencies: ["QRQCore"]),
         .testTarget(name: "QRQCoreTests", dependencies: ["QRQCore"]),
     ]
 )

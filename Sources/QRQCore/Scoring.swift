@@ -1,4 +1,6 @@
-import Foundation
+#if !os(WASI)
+import Foundation // not on Wasm: the web build stays Foundation-free (see Text.swift)
+#endif
 
 /// One position in the alignment between what was sent and what was typed.
 public enum AlignedChar: Equatable, Sendable {

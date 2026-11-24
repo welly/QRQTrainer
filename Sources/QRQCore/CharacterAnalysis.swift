@@ -1,4 +1,6 @@
-import Foundation
+#if !os(WASI)
+import Foundation // not on Wasm: the web build stays Foundation-free (see Text.swift)
+#endif
 
 /// How often one character was copied correctly, and how often instantly.
 public struct CharacterStat: Identifiable, Equatable, Sendable {

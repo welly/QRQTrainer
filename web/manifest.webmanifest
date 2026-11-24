@@ -1,0 +1,15 @@
+{
+  "name": "QRQ Trainer",
+  "short_name": "QRQ Trainer",
+  "description": "High-speed Morse copying practice: callsigns sent at real speed, faster each time you copy one right.",
+  "lang": "en-GB",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f1e7",
+  "theme_color": "#f6f1e7",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

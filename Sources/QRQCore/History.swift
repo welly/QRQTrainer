@@ -1,4 +1,6 @@
+#if !os(WASI) // Files and dates: the apps only. The web page keeps its history in the browser.
 import Foundation
+
 
 /// JSON file persistence for attempt history.
 public struct HistoryStore: Sendable {
@@ -50,3 +52,4 @@ public struct HistoryStore: Sendable {
         return lines.joined(separator: "\n") + "\n"
     }
 }
+#endif

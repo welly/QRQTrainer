@@ -70,6 +70,29 @@ With full Xcode installed, plain `swift test` works too; the script adds the fra
 
 Then go to **Settings → Callsigns → Import File…** and pick `~/Downloads/MASTER.SCP`.
 
+## Web version
+
+`web/` is a static page that runs QRQ Trainer in the browser, on phones as well as computers. The engine is the
+Mac app's own (`QRQCore`, compiled to WebAssembly by the `QRQWeb` target): the same callsign generator, modes,
+speed rules, scoring and Insights. The page plays the Morse on the browser's audio clock and times answers from
+when the first tone is heard. It has Train (every mode, adaptive or fixed speed, Farnsworth, repeat with F6),
+results with the speed chart and every item, Insights, History (with CSV export) and the same settings, including
+importing a callsign list such as `MASTER.SCP`. Settings, history and the list are kept in the browser only.
+It can be added to a phone's home screen and works offline once loaded.
+
+Building it needs the swift.org toolchain and the matching Swift SDK for Wasm (Xcode's Swift can't build for
+Wasm); `scripts/build-web.sh` says where to get them.
+
+```bash
+./scripts/build-web.sh                          # web/qrq.wasm
+python3 -m http.server 8768 --directory web     # then open http://localhost:8768
+node scripts/web-check.mjs [mode] [items]       # run a short attempt in Node, with timings
+```
+
+`./scripts/publish-web.sh` builds it and copies it into the G3AJM site (`../welly.github.io/qrq/`), stamped with
+the commit so browsers don't mix new and cached files; then commit and push that repository. `web/qrq.wasm` is
+build output and isn't committed.
+
 ## Project layout
 
 | Path | What |
@@ -81,6 +104,8 @@ Then go to **Settings → Callsigns → Import File…** and pick `~/Downloads/M
 | `Sources/QRQCore/CharacterAnalysis.swift` | Per-character accuracy, instant recognition, mix-ups, focused drills |
 | `Sources/QRQCore/History.swift` | JSON persistence and CSV export |
 | `Sources/QRQTrainer/` | macOS app: audio player, models, SwiftUI views |
+| `Sources/QRQWeb/` | The web version's WebAssembly entry points (QRQCore for the browser) |
+| `web/` | The web version: page, service worker, manifest and icons |
 
 `QRQCore` has no Apple-only dependencies, so the logic is unit-tested independently of the UI.
 

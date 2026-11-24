@@ -1,4 +1,6 @@
-import Foundation
+#if !os(WASI)
+import Foundation // not on Wasm: the web build stays Foundation-free (see Text.swift)
+#endif
 
 /// A family of characters that can be trained.
 public enum CharacterClass: String, CaseIterable, Codable, Sendable {

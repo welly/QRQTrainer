@@ -1,4 +1,6 @@
-import Foundation
+#if !os(WASI)
+import Foundation // not on Wasm: the web build stays Foundation-free (see Text.swift)
+#endif
 
 public struct TrainingConfig: Codable, Equatable, Sendable {
     /// Number of callsigns in one attempt.
@@ -98,7 +100,7 @@ public struct TrainingSession: Sendable {
                                 firstKeyTime: Double? = nil) -> CallResult? {
         let responseTime = responseTime.map { max(0, $0) }
         guard let sent = currentCallsign else { return nil }
-        let received = answer.trimmingCharacters(in: .whitespaces).uppercased()
+        let received = answer.trimmingSpaces().uppercased()
         let result = CallResult(
             index: index,
             sent: sent,
@@ -135,6 +137,7 @@ public struct TrainingSession: Sendable {
     }
 }
 
+#if !os(WASI) // UUID and Date need Foundation; the web page builds its records in JavaScript.
 /// A finished attempt, as stored in the history.
 public struct AttemptRecord: Codable, Equatable, Identifiable, Sendable {
     public let id: UUID
@@ -168,3 +171,4 @@ public struct AttemptRecord: Codable, Equatable, Identifiable, Sendable {
         return times.isEmpty ? nil : times.reduce(0, +) / times.count
     }
 }
+#endif

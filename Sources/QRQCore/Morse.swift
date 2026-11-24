@@ -1,4 +1,8 @@
+#if os(WASI)
+import WASILibc // sin and cos without Foundation, for the web build
+#else
 import Foundation
+#endif
 
 /// One keying segment: the key is either down (tone) or up (silence) for a number of dit units.
 public struct KeyElement: Equatable, Sendable {

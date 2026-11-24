@@ -1,4 +1,6 @@
-import Foundation
+#if !os(WASI)
+import Foundation // not on Wasm: the web build stays Foundation-free (see Text.swift)
+#endif
 
 /// Deterministic RNG (SplitMix64) so tests and "replay this attempt" are reproducible.
 public struct SeededRandom: RandomNumberGenerator, Sendable {
@@ -33,7 +35,7 @@ public enum CallsignList {
         var seen = Set<String>()
         var out: [String] = []
         for rawLine in text.split(whereSeparator: \.isNewline) {
-            let line = rawLine.trimmingCharacters(in: .whitespaces)
+            let line = String(rawLine).trimmingSpaces()
             if line.isEmpty || line.hasPrefix("#") || line.hasPrefix("!") || line.hasPrefix(";") { continue }
             for token in line.split(whereSeparator: { $0 == " " || $0 == "\t" || $0 == "," || $0 == ";" }) {
                 let call = token.uppercased()
