@@ -147,7 +147,7 @@ private struct TrainingSettings: View {
 private struct CharacterSettings: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Choose which characters character-group modes may send. A mode only uses the classes in its name, so Letters ignores the numbers and symbols chosen here.")
+            Text("Choose which characters the Letters, Numbers and Symbols modes (and their combinations) send. Each mode only uses its own rows, so Letters ignores numbers and symbols. Callsigns, Ham codes, Words and Needs work aren't affected.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
