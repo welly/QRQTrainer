@@ -905,8 +905,14 @@ function renderSettings() {
 
     el('div', { class: 'section-title', id: 'callsignSettings' }, 'Callsigns'),
     el('div', { class: 'group' },
-      selectField('Source', settings.useImported && importedCount ? 'imported' : 'generated', [['generated', 'Generated callsigns'], ['imported', 'Imported list']],
-        (val) => { settings.useImported = val === 'imported'; save(); rerender(); }, !importedCount),
+      // Always available: choosing the imported list before there is one opens the file picker, and the source
+      // switches over once a list has loaded (importList).
+      selectField('Source', settings.useImported && importedCount ? 'imported' : 'generated',
+        [['generated', 'Generated callsigns'], ['imported', importedCount ? 'Imported list' : 'Imported list…']],
+        (val) => {
+          if (val === 'imported' && !importedCount) { rerender(); $('listFile').click(); return; }
+          settings.useImported = val === 'imported'; save(); rerender();
+        }),
       importedCount ? field(importedList.name, el('span', { class: 'value' }, `${importedCount.toLocaleString('en-GB')} callsigns`)) : null,
       el('div', { class: 'field' },
         el('button', { class: 'link-btn', type: 'button', onclick: () => $('listFile').click() }, importedCount ? 'Replace the list…' : 'Import a callsign list…'),
